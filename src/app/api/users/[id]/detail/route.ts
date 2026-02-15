@@ -64,11 +64,11 @@ export async function GET(
     })
     const balance = walletResult._sum?.amount_bs || 0
 
-    // Calcular ganancias totales (suma de todas las ganancias diarias)
+    // Calcular ganancias totales (suma de todos los ingresos positivos)
     const earningsResult = await prisma.walletLedger.aggregate({
       where: {
         user_id: userId,
-        type: 'DAILY_PROFIT',
+        type: { in: ['SENAL_PROFIT', 'FUTURE_PAYOUT', 'RANK_BONUS', 'GLOBAL_BONUS', 'BONO_RETORNO', 'REFERRAL_BONUS'] },
       },
       _sum: { amount_bs: true },
     })
