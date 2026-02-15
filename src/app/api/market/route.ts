@@ -12,22 +12,30 @@ export async function GET(request: Request) {
         apiUrl = 'https://fapi.binance.com/fapi/v1/ticker/24hr'
     }
 
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 8000) // 8s timeout
+
     try {
         const res = await fetch(apiUrl, {
-            next: { revalidate: 60 }, // Cache for 60 seconds
+            signal: controller.signal,
+            cache: 'no-store',
         })
 
+        clearTimeout(timeout)
+
         if (!res.ok) {
-            throw new Error('Failed to fetch data from Binance')
+            throw new Error(`Binance returned ${res.status}`)
         }
 
         const data = await res.json()
         return NextResponse.json(data)
-    } catch (error) {
-        console.error('Error fetching market data:', error)
+    } catch (error: any) {
+        clearTimeout(timeout)
+        const isTimeout = error?.name === 'AbortError'
+        console.error('Error fetching market data:', isTimeout ? 'timeout' : error?.message)
         return NextResponse.json(
-            { error: 'Error fetching market data' },
-            { status: 500 }
+            { error: isTimeout ? 'timeout' : 'Error fetching market data' },
+            { status: 503 }
         )
     }
 }

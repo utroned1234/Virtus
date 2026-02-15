@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ArrowUpRight, ArrowDownRight, TrendingUp } from 'lucide-react'
+import { TrendingUp } from 'lucide-react'
 
 interface Ticker {
     symbol: string
@@ -17,6 +17,7 @@ export type MarketCategory = 'favorites' | 'crypto' | 'futures' | 'forex' | 'ind
 export default function MarketList({ category }: { category: MarketCategory }) {
     const [data, setData] = useState<Ticker[]>([])
     const [loading, setLoading] = useState(true)
+    const [fetchError, setFetchError] = useState(false)
 
     // Mock data for non-crypto assets
     const mockStocks = [
@@ -37,8 +38,9 @@ export default function MarketList({ category }: { category: MarketCategory }) {
 
     useEffect(() => {
         setLoading(true)
+        setFetchError(false)
         fetchMarketData()
-        const interval = setInterval(fetchMarketData, 5000)
+        const interval = setInterval(fetchMarketData, 10000)
         return () => clearInterval(interval)
     }, [category])
 
@@ -59,10 +61,13 @@ export default function MarketList({ category }: { category: MarketCategory }) {
             let type = 'spot'
             if (category === 'futures') type = 'futures'
 
-            // Reusing our proxy for real crypto data
             const res = await fetch(`/api/market?type=${type}`)
             if (res.ok) {
                 const result = await res.json()
+                if (!Array.isArray(result)) {
+                    setFetchError(true)
+                    return
+                }
                 let filtered: Ticker[] = []
 
                 if (category === 'crypto') {
@@ -70,20 +75,23 @@ export default function MarketList({ category }: { category: MarketCategory }) {
                 } else if (category === 'futures') {
                     filtered = result.filter((t: any) => t.symbol.endsWith('USDT'))
                 } else if (category === 'forex') {
-                    const forexPairs = ['EURUSDT', 'GBPUSDT', 'AUDUSDT', 'NZDUSDT', 'USDCUSDT'] // Using USDT pairs as proxies
+                    const forexPairs = ['EURUSDT', 'GBPUSDT', 'AUDUSDT', 'NZDUSDT', 'USDCUSDT']
                     filtered = result.filter((t: any) => forexPairs.includes(t.symbol))
                 } else if (category === 'commodities') {
-                    const commPairs = ['PAXGUSDT'] // Gold proxy
+                    const commPairs = ['PAXGUSDT']
                     filtered = result.filter((t: any) => commPairs.includes(t.symbol))
                 } else {
-                    // Default fallback
                     filtered = result.slice(0, 20)
                 }
 
                 setData(filtered)
+                setFetchError(false)
+            } else {
+                setFetchError(true)
             }
         } catch (error) {
             console.error('Error fetching market data:', error)
+            setFetchError(true)
         } finally {
             setLoading(false)
         }
@@ -114,10 +122,10 @@ export default function MarketList({ category }: { category: MarketCategory }) {
     return (
         <div className="pb-24">
             {/* Header Columns */}
-            <div className="grid grid-cols-3 text-[10px] text-white/40 px-4 py-2 uppercase tracking-wider sticky top-[56px] bg-[#060B10] z-20 border-b border-white/5">
+            <div className="grid grid-cols-3 text-[10px] text-white/40 px-3 py-2 uppercase tracking-wider sticky top-[56px] bg-[#060B10] z-20 border-b border-white/5">
                 <div className="text-left">Activo</div>
-                <div className="text-right pr-6">Precio</div>
-                <div className="text-right">Cambio 24h</div>
+                <div className="text-right pr-2">Precio</div>
+                <div className="text-right">24h</div>
             </div>
 
             {loading ? (
@@ -125,24 +133,27 @@ export default function MarketList({ category }: { category: MarketCategory }) {
                     <div className="w-6 h-6 border-2 border-[#34D399] border-t-transparent rounded-full animate-spin"></div>
                     <span className="text-xs animate-pulse">Cargando mercado...</span>
                 </div>
+            ) : fetchError ? (
+                <div className="py-16 flex flex-col items-center justify-center text-white/30 space-y-3">
+                    <span className="text-2xl">📡</span>
+                    <span className="text-xs text-center px-6">Sin conexión con el mercado.<br />Reintentando cada 10s...</span>
+                </div>
             ) : (
-                <div className="space-y-0.5">
+                <div className="space-y-0">
                     {data.length === 0 ? (
                         <div className="py-10 text-center text-white/30 text-xs">No hay datos disponibles</div>
                     ) : (data.map((item) => {
                         const change = parseFloat(item.priceChangePercent)
                         const isPositive = change >= 0
                         const symbol = item.name || item.symbol.replace('USDT', '')
-                        const subtext = item.name ? item.symbol : '/ USDT'
 
                         return (
-                            <div key={item.symbol} className="grid grid-cols-3 items-center py-3.5 px-4 active:bg-white/5 transition-colors cursor-pointer border-b border-white/[0.03] group">
+                            <div key={item.symbol} className="grid grid-cols-3 items-center py-3 px-3 active:bg-white/5 transition-colors cursor-pointer border-b border-white/[0.03] group">
                                 {/* Left: Pair + Vol */}
-                                <div className="flex items-center gap-3">
-                                    {/* Icon Placeholder or Image */}
-                                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center overflow-hidden shrink-0">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-7 h-7 rounded-full bg-white/5 flex items-center justify-center overflow-hidden shrink-0">
                                         {['stocks', 'indices'].includes(category) ? (
-                                            <TrendingUp className="w-4 h-4 text-white/50" />
+                                            <TrendingUp className="w-3.5 h-3.5 text-white/50" />
                                         ) : (
                                             <img
                                                 src={getIconUrl(item.symbol) || ''}
@@ -156,27 +167,24 @@ export default function MarketList({ category }: { category: MarketCategory }) {
                                         )}
                                     </div>
                                     <div className="min-w-0">
-                                        <div className="flex items-center gap-1.5">
-                                            <span className="text-sm font-bold text-white truncate">{symbol}</span>
-                                        </div>
-                                        <div className="text-[10px] text-white/30 font-mono">
-                                            VOL: {formatVolume(item.quoteVolume)}
+                                        <span className="text-xs font-bold text-white truncate block">{symbol}</span>
+                                        <div className="text-[9px] text-white/30 font-mono">
+                                            {formatVolume(item.quoteVolume)}
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Center: Price */}
-                                <div className="text-right pr-6">
-                                    <div className={`text-sm font-medium font-mono ${isPositive ? 'text-[#34D399]' : 'text-white'}`}>
+                                <div className="text-right pr-2">
+                                    <div className={`text-xs font-medium font-mono ${isPositive ? 'text-[#34D399]' : 'text-white'}`}>
                                         {parseFloat(item.lastPrice).toFixed(item.lastPrice.startsWith('0.0') ? 5 : 2)}
                                     </div>
                                 </div>
 
-                                {/* Right: Change Button */}
+                                {/* Right: Change Badge */}
                                 <div className="flex justify-end">
-                                    <div className={`w-[70px] py-1.5 rounded-[4px] flex items-center justify-center gap-1 text-[11px] font-bold text-white shadow-sm transition-transform active:scale-95 ${isPositive ? 'bg-[#34D399] shadow-[0_2px_10px_rgba(52,211,153,0.2)]' : 'bg-[#F87171] shadow-[0_2px_10px_rgba(248,113,113,0.2)]'
-                                        }`}>
-                                        {isPositive ? '' : ''}{change.toFixed(2)}%
+                                    <div className={`w-[60px] py-1 rounded-[4px] flex items-center justify-center text-[10px] font-bold text-white ${isPositive ? 'bg-[#34D399]' : 'bg-[#F87171]'}`}>
+                                        {isPositive ? '+' : ''}{change.toFixed(2)}%
                                     </div>
                                 </div>
                             </div>

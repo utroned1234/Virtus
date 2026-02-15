@@ -245,3 +245,12 @@ tr:hover td {
   0% { opacity: 1; transform: translateY(-100vh) rotate(0deg); }
   100% { opacity: 0; transform: translateY(100vh) rotate(720deg); }
 }
+
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); opacity: 0; }
+  to   { transform: translateX(0);     opacity: 1; }
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
