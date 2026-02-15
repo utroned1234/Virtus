@@ -1,0 +1,118 @@
+'use client'
+
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { useLanguage } from '@/context/LanguageContext'
+
+export default function BottomNav() {
+  const pathname = usePathname()
+  const { t } = useLanguage()
+
+  const navItems = [
+    {
+      href: '/home',
+      label: t('nav.home'),
+      icon: (active: boolean) => (
+        <svg viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={active ? 0 : 1.8} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 9.5L12 2l9 7.5V20a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9.5z" />
+          {!active && <polyline points="9 22 9 12 15 12 15 22" />}
+          {active && <rect x="9" y="12" width="6" height="10" rx="1" fill="#0D1F1C" />}
+        </svg>
+      )
+    },
+    {
+      href: '/paks',
+      label: t('nav.vip'),
+      icon: (active: boolean) => (
+        <svg viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke={active ? 'none' : 'currentColor'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="2" y="2" width="8.5" height="8.5" rx="2.5" />
+          <rect x="13.5" y="2" width="8.5" height="8.5" rx="2.5" />
+          <rect x="2" y="13.5" width="8.5" height="8.5" rx="2.5" />
+          <rect x="13.5" y="13.5" width="8.5" height="8.5" rx="2.5" />
+        </svg>
+      )
+    },
+    {
+      href: '/mercado',
+      label: 'Mercado',
+      icon: (active: boolean) => (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 0 : 1.8} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 3v18h18" />
+          <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" />
+        </svg>
+      )
+    },
+    {
+      href: '/futuros',
+      label: t('nav.futuros'),
+      icon: (active: boolean) => (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="15.5" y="8" width="5" height="13" rx="1.5" fill={active ? 'currentColor' : 'none'} strokeWidth={active ? 0 : 1.8} />
+          <rect x="9.5" y="3" width="5" height="18" rx="1.5" fill={active ? 'currentColor' : 'none'} strokeWidth={active ? 0 : 1.8} />
+          <rect x="3.5" y="12" width="5" height="9" rx="1.5" fill={active ? 'currentColor' : 'none'} strokeWidth={active ? 0 : 1.8} />
+        </svg>
+      )
+    },
+    {
+      href: '/withdrawals',
+      label: t('nav.wallet'),
+      icon: (active: boolean) => (
+        <svg viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke={active ? 'none' : 'currentColor'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="2" y="5" width="20" height="15" rx="3" />
+          {active && <rect x="14" y="10" width="8" height="5" rx="1.5" fill="#0D1F1C" />}
+          {active && <circle cx="17" cy="12.5" r="1" fill="currentColor" />}
+          {!active && <path d="M22 10H16a2 2 0 0 0 0 4h6" />}
+          {!active && <circle cx="17" cy="12" r="0.8" fill="currentColor" />}
+        </svg>
+      )
+    },
+  ]
+
+  return (
+    <nav className="fixed bottom-3 left-3 right-3 z-50 safe-area-inset-bottom">
+      {/* Fondo azul oscuro con bordes redondeados */}
+      <div className="bg-[#0D1F1C] rounded-2xl shadow-[0_4px_30px_rgba(13,31,28,0.4)] overflow-hidden">
+        <div className="max-w-screen-xl mx-auto px-2">
+          <div className="flex items-center justify-around h-[66px]">
+            {navItems.map((item) => {
+              const isActive = pathname === item.href
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="flex flex-col items-center justify-center flex-1 h-full group relative"
+                >
+                  {/* Glow de fondo del item activo */}
+                  {isActive && (
+                    <div className="absolute inset-x-3 inset-y-2 bg-white/10 rounded-xl" />
+                  )}
+
+                  {/* Icono */}
+                  <div
+                    className={`w-6 h-6 mb-0.5 transition-all duration-300 relative z-10 ${isActive
+                      ? 'text-[#34D399] scale-110 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]'
+                      : 'text-white/40 group-hover:text-white/70 group-hover:scale-105'
+                      }`}
+                  >
+                    {item.icon(isActive)}
+                  </div>
+
+                  {/* Label */}
+                  <span
+                    className={`text-[10px] font-semibold transition-all duration-300 relative z-10 ${isActive
+                      ? 'text-[#34D399]'
+                      : 'text-white/40 group-hover:text-white/70'
+                      }`}
+                    style={{ fontFamily: 'Outfit, sans-serif' }}
+                  >
+                    {item.label}
+                  </span>
+                </Link>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+    </nav>
+  )
+}

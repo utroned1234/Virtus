@@ -1,0 +1,247 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+
+:root {
+  --font-outfit: 'Outfit', 'Inter', sans-serif;
+  --font-inter: 'Inter', sans-serif;
+
+  /* Fondo App - Jade Esmeralda */
+  --bg-app: #0A1A1A;
+  --bg-secondary: #122524;
+  --bg-accent: #1A3D38;
+
+  /* Text Colors */
+  --text-primary: #1A2E2B;
+  --text-secondary: #6B8A85;
+  --text-on-dark: #FFFFFF;
+  --text-accent: #10B981;
+
+  /* Inputs */
+  --input-bg: #FFFFFF;
+  --input-border: #D1E7DD;
+  --input-border-focus: #10B981;
+  --input-text: #1A2E2B;
+  --input-placeholder: #8AABA5;
+
+  /* Cards */
+  --card-bg: #F0FDF9;
+  --card-border: #D1FAE5;
+  --card-title: #1A2E2B;
+  --card-text: #6B8A85;
+
+  /* Buttons */
+  --btn-primary-start: #10B981;
+  --btn-primary-end: #059669;
+  --btn-primary-text: #FFFFFF;
+  --btn-primary-hover: #047857;
+  --btn-secondary-bg: #ECFDF5;
+  --btn-secondary-text: #059669;
+  --btn-secondary-border: #A7F3D0;
+
+  /* Accents */
+  --accent-primary: #10B981;
+  --accent-secondary: #059669;
+  --accent-gold: #FBBF24;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-outfit), sans-serif;
+  background: var(--bg-app);
+  color: var(--text-on-dark);
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+@layer utilities {
+  .glass-card {
+    background: linear-gradient(145deg, rgba(13, 31, 28, 0.92), rgba(18, 37, 36, 0.88));
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(52, 211, 153, 0.15);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.25),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    border-radius: 20px;
+    transition: all 0.3s ease;
+    color: #D1FAE5;
+  }
+
+  .glass-card:hover {
+    border-color: rgba(52, 211, 153, 0.3);
+    box-shadow:
+      0 12px 40px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-gradient {
+    background: linear-gradient(135deg, #10B981, #059669);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .text-gradient-gold {
+    background: linear-gradient(135deg, #FBBF24, #D97706);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}
+
+/* Animations */
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Button & UI Defaults */
+.btn-primary {
+  background: linear-gradient(135deg, var(--btn-primary-start), var(--btn-primary-end));
+  color: var(--btn-primary-text);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+  border-radius: 12px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+  background: var(--btn-primary-hover);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(16, 185, 129, 0.4);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.6);
+}
+
+/* Input overrides for inside cards */
+.glass-card input,
+.glass-card select,
+.glass-card textarea {
+  background: var(--input-bg) !important;
+  border: 1px solid var(--input-border) !important;
+  color: var(--input-text) !important;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.glass-card input:focus,
+.glass-card select:focus,
+.glass-card textarea:focus {
+  border-color: var(--input-border-focus) !important;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+
+.glass-card input::placeholder,
+.glass-card textarea::placeholder {
+  color: var(--input-placeholder) !important;
+}
+
+/* Table styling */
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+th {
+  color: var(--accent-primary) !important;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+}
+
+td {
+  color: rgba(255, 255, 255, 0.8);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+tr:hover td {
+  background: rgba(16, 185, 129, 0.04);
+}
+
+/* Roulette Animations */
+@keyframes ledBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+@keyframes rotateBorder {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+}
+
+@keyframes buttonPulse {
+  0%, 100% { box-shadow: 0 0 30px rgba(0, 255, 255, 0.6), inset 0 0 20px rgba(255, 255, 255, 0.2); }
+  50% { box-shadow: 0 0 50px rgba(0, 255, 255, 0.9), inset 0 0 30px rgba(255, 255, 255, 0.4); }
+}
+
+@keyframes pointerBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes resultPop {
+  0% { transform: scale(0.5); opacity: 0; }
+  60% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.confetti-piece {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  animation: confettiFall 3s linear forwards;
+  opacity: 0;
+}
+
+@keyframes confettiFall {
+  0% { opacity: 1; transform: translateY(-100vh) rotate(0deg); }
+  100% { opacity: 0; transform: translateY(100vh) rotate(720deg); }
+}

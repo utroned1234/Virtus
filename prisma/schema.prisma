@@ -1,0 +1,337 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id                 String           @id @default(cuid())
+  user_code          String           @unique
+  username           String           @unique
+  email              String           @unique
+  password_hash      String
+  full_name          String
+  profile_image_url  String?
+  country            String?
+  language           String?          @default("es")
+  role               UserRole         @default(USER)
+  sponsor_id         String?
+  created_at         DateTime         @default(now())
+  updated_at         DateTime         @updatedAt
+  password_resets    PasswordReset[]
+  purchases          Purchase[]
+  sponsor            User?            @relation("SponsorTree", fields: [sponsor_id], references: [id])
+  referrals          User[]           @relation("SponsorTree")
+  wallet_ledger      WalletLedger[]
+  withdrawals        Withdrawal[]
+  task_completions   TaskCompletion[]
+  future_orders      FutureOrder[]
+  rank_history       UserRankHistory[]
+  current_rank       Int              @default(0)
+  signal_executions  SignalExecution[]
+
+  @@index([sponsor_id])
+  @@index([user_code])
+  @@index([username])
+  @@index([email])
+}
+
+model VipPackage {
+  id                            Int        @id @default(autoincrement())
+  level                         Int        @unique
+  name                          String
+  investment_bs                 Float
+  daily_profit_bs               Float
+  participates_in_referral_bonus Boolean   @default(false)
+  participates_in_bono_retorno  Boolean    @default(false)
+  is_enabled                    Boolean    @default(true)
+  qr_image_url                  String?
+  package_image_url             String?
+  created_at                    DateTime   @default(now())
+  updated_at                    DateTime   @updatedAt
+  purchases                     Purchase[]
+
+  @@index([level])
+}
+
+model Purchase {
+  id                        String         @id @default(cuid())
+  user_id                   String
+  vip_package_id            Int
+  investment_bs             Float
+  daily_profit_bs           Float
+  receipt_url               String?
+  tx_hash                   String?        @unique
+  block_confirmations       Int            @default(0)
+  status                    PurchaseStatus @default(PENDING)
+  activated_at              DateTime?
+  last_profit_at            DateTime?
+  total_earned_bs           Float          @default(0)
+  current_capital           Float          @default(0)
+  is_upgrade                Boolean        @default(false)
+  upgraded_from_purchase_id String?
+  created_at                DateTime       @default(now())
+  updated_at                DateTime       @updatedAt
+  user                      User           @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  vip_package               VipPackage     @relation(fields: [vip_package_id], references: [id])
+  signal_executions         SignalExecution[]
+
+  @@index([user_id])
+  @@index([status])
+  @@index([activated_at])
+  @@index([last_profit_at])
+  @@index([tx_hash])
+}
+
+model WalletLedger {
+  id          String     @id @default(cuid())
+  user_id     String
+  type        LedgerType
+  amount_bs   Float
+  description String?
+  created_at  DateTime   @default(now())
+  user        User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([type])
+  @@index([created_at])
+}
+
+model Withdrawal {
+  id             String           @id @default(cuid())
+  user_id        String
+  amount_bs      Float
+  qr_image_url   String?
+  bank_name      String           @default("")
+  account_number String           @default("")
+  payout_method  String           @default("")
+  phone_number   String           @default("")
+  status         WithdrawalStatus @default(PENDING)
+  receipt_url    String?
+  processed_at   DateTime?
+  created_at     DateTime         @default(now())
+  updated_at     DateTime         @updatedAt
+  user           User             @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([status])
+}
+
+model ReferralBonusRule {
+  id         Int      @id @default(autoincrement())
+  level      Int      @unique
+  percentage Float
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([level])
+}
+
+model Banner {
+  id         Int            @id @default(autoincrement())
+  location   BannerLocation
+  image_url  String
+  link_url   String?
+  order      Int            @default(0)
+  is_active  Boolean        @default(true)
+  created_at DateTime       @default(now())
+  updated_at DateTime       @updatedAt
+
+  @@index([location, order])
+}
+
+model Announcement {
+  id         Int      @id @default(autoincrement())
+  title      String
+  body       String
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([is_active])
+  @@index([created_at])
+}
+
+model EffortBonus {
+  id                      Int      @id @default(autoincrement())
+  title                   String
+  target_kpi              String
+  level_description       String
+  amount_bs               Float
+  requirement_description String
+  sort_order              Int      @default(0)
+  is_active               Boolean  @default(true)
+  created_at              DateTime @default(now())
+  updated_at              DateTime @updatedAt
+
+  @@index([sort_order])
+}
+
+model PasswordReset {
+  id         String   @id @default(cuid())
+  user_id    String
+  token      String   @unique
+  expires_at DateTime
+  used       Boolean  @default(false)
+  created_at DateTime @default(now())
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([user_id])
+}
+
+model DailyTask {
+  id          Int              @id @default(autoincrement())
+  position    Int              @unique // 1, 2, 3, or 4
+  image_url   String           // YouTube video URL
+  is_active   Boolean          @default(true)
+  created_at  DateTime         @default(now())
+  updated_at  DateTime         @updatedAt
+  completions TaskCompletion[]
+
+  @@index([position])
+}
+
+model TaskCompletion {
+  id            String    @id @default(cuid())
+  user_id       String
+  task_id       Int
+  rating        Int?
+  comment       String?
+  completed_at  DateTime  @default(now())
+  user          User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  task          DailyTask @relation(fields: [task_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, task_id, completed_at])
+  @@index([user_id])
+  @@index([task_id])
+  @@index([completed_at])
+}
+
+model GlobalConfig {
+  id                Int      @id @default(1)
+  whatsapp_number   String   @default("")
+  binance_wallet_id String   @default("")
+  binance_qr_url    String   @default("")
+  updated_at        DateTime @updatedAt
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum PurchaseStatus {
+  PENDING
+  PENDING_VERIFICATION
+  ACTIVE
+  REJECTED
+  CANCELLED
+}
+
+enum WithdrawalStatus {
+  PENDING
+  PAID
+  REJECTED
+}
+
+enum LedgerType {
+  REFERRAL_BONUS
+  WITHDRAW_REQUEST
+  WITHDRAW_REJECT
+  ADJUSTMENT
+  FUTURE_ENTRY
+  FUTURE_PAYOUT
+  BONO_RETORNO
+  INVERSION
+  RANK_BONUS
+  SENAL_PROFIT
+  GLOBAL_BONUS
+}
+
+
+model FutureOrder {
+  id           String   @id @default(cuid())
+  user_id      String
+  type         String   // CALL, PUT
+  pair         String
+  amount_bs    Float
+  leverage     Float
+  entry_price  Float
+  exit_price   Float?
+  status       String   // ACTIVE, WIN, LOSS
+  pnl_bs       Float?
+  close_reason  String?  // MANUAL, TP, SL, LIQUIDATION, SIGNAL_COMPLETE
+  signal_id     String?
+  auto_close_at DateTime?
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  user          User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([status])
+  @@index([signal_id])
+}
+
+enum BannerLocation {
+  HOME_TOP
+  HOME_BOTTOM
+}
+
+model UserRankHistory {
+  id            String    @id @default(cuid())
+  user_id       String
+  rank          Int
+  bonus_paid    Boolean   @default(false)
+  bonus_paid_at DateTime?
+  achieved_at   DateTime  @default(now())
+  user          User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([rank])
+}
+
+model Signal {
+  id         String           @id @default(cuid())
+  code       String           @unique
+  label      String?
+  pair       String           @default("BTC/USDT")
+  direction  String           @default("CALL")
+  status     SignalStatus     @default(ACTIVE)
+  created_at DateTime         @default(now())
+  closed_at  DateTime?
+  executions SignalExecution[]
+
+  @@index([status])
+}
+
+model SignalExecution {
+  id             String   @id @default(cuid())
+  signal_id      String
+  user_id        String
+  purchase_id    String
+  capital_before Float
+  gain_total     Float
+  capital_added  Float
+  senal_profit   Float
+  global_bonus   Float
+  user_rank      Int
+  created_at     DateTime @default(now())
+  signal         Signal   @relation(fields: [signal_id], references: [id], onDelete: Cascade)
+  user           User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  purchase       Purchase @relation(fields: [purchase_id], references: [id], onDelete: Cascade)
+
+  @@unique([signal_id, user_id])
+  @@index([signal_id])
+  @@index([user_id])
+  @@index([purchase_id])
+}
+
+enum SignalStatus {
+  ACTIVE
+  CLOSED
+}
