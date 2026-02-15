@@ -564,46 +564,6 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Botones de navegación rápida */}
-        <div className="grid grid-cols-3 gap-3">
-          <button
-            onClick={() => router.push('/my-purchases')}
-            className="relative overflow-hidden flex items-center justify-center gap-2 py-3 rounded-xl transition-all duration-300 hover:scale-[1.02]"
-            style={{
-              background: 'linear-gradient(145deg, rgba(13, 31, 28, 0.9), rgba(18, 37, 36, 0.85))',
-              border: '1px solid rgba(52, 211, 153, 0.2)',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
-            }}
-          >
-            <span className="text-lg">👑</span>
-            <span className="text-xs font-bold uppercase tracking-wider text-[#34D399]">Mis Compras</span>
-          </button>
-          <button
-            onClick={() => router.push('/network')}
-            className="relative overflow-hidden flex items-center justify-center gap-2 py-3 rounded-xl transition-all duration-300 hover:scale-[1.02]"
-            style={{
-              background: 'linear-gradient(145deg, rgba(13, 31, 28, 0.9), rgba(18, 37, 36, 0.85))',
-              border: '1px solid rgba(102, 187, 106, 0.2)',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
-            }}
-          >
-            <span className="text-lg">🌐</span>
-            <span className="text-xs font-bold uppercase tracking-wider text-[#66BB6A]">Mi Red</span>
-          </button>
-          <button
-            onClick={() => router.push('/tables')}
-            className="relative overflow-hidden flex items-center justify-center gap-2 py-3 rounded-xl transition-all duration-300 hover:scale-[1.02]"
-            style={{
-              background: 'linear-gradient(145deg, rgba(13, 31, 28, 0.9), rgba(18, 37, 36, 0.85))',
-              border: '1px solid rgba(255, 215, 0, 0.2)',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
-            }}
-          >
-            <span className="text-lg">💰</span>
-            <span className="text-xs font-bold uppercase tracking-wider text-[#FFD700]">{t('home.earnings')}</span>
-          </button>
-        </div>
-
         {/* Resumen de Ganancias */}
         <EarningsChart
           totalEarnings={data.total_earnings}
