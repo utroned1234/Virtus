@@ -41,7 +41,7 @@ export default function EarningsChart({ totalEarnings, earningsHistory, referral
       </div>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 gap-2">
         <div className="text-center p-2.5 rounded-xl" style={{
           background: 'rgba(52, 211, 153, 0.08)',
           border: '1px solid rgba(52, 211, 153, 0.2)',

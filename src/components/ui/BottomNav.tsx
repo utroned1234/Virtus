@@ -21,18 +21,6 @@ export default function BottomNav() {
       )
     },
     {
-      href: '/paks',
-      label: t('nav.vip'),
-      icon: (active: boolean) => (
-        <svg viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke={active ? 'none' : 'currentColor'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="2" y="2" width="8.5" height="8.5" rx="2.5" />
-          <rect x="13.5" y="2" width="8.5" height="8.5" rx="2.5" />
-          <rect x="2" y="13.5" width="8.5" height="8.5" rx="2.5" />
-          <rect x="13.5" y="13.5" width="8.5" height="8.5" rx="2.5" />
-        </svg>
-      )
-    },
-    {
       href: '/mercado',
       label: 'Mercado',
       icon: (active: boolean) => (
@@ -44,7 +32,7 @@ export default function BottomNav() {
     },
     {
       href: '/futuros',
-      label: t('nav.futuros'),
+      label: 'Trading',
       icon: (active: boolean) => (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
           <rect x="15.5" y="8" width="5" height="13" rx="1.5" fill={active ? 'currentColor' : 'none'} strokeWidth={active ? 0 : 1.8} />

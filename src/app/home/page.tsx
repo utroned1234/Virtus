@@ -575,20 +575,32 @@ export default function HomePage() {
               boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
             }}
           >
-            <span className="text-lg">👑</span>
+            <div className="w-5 h-5 text-[#34D399]">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <path d="M16 10a4 4 0 0 1-8 0" />
+              </svg>
+            </div>
             <span className="text-xs font-bold uppercase tracking-wider text-[#34D399]">Mis Compras</span>
           </button>
           <button
-            onClick={() => router.push('/network')}
+            onClick={() => router.push('/paks')}
             className="relative overflow-hidden flex items-center justify-center gap-2 py-3 rounded-xl transition-all duration-300 hover:scale-[1.02]"
             style={{
-              background: 'linear-gradient(145deg, rgba(13, 31, 28, 0.9), rgba(18, 37, 36, 0.85))',
-              border: '1px solid rgba(102, 187, 106, 0.2)',
+              background: 'rgba(171, 130, 255, 0.08)',
+              border: '1px solid rgba(171, 130, 255, 0.2)',
               boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
             }}
           >
-            <span className="text-lg">🌐</span>
-            <span className="text-xs font-bold uppercase tracking-wider text-[#66BB6A]">Mi Red</span>
+            <div className="w-5 h-5 text-[#AB82FF]">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="9" />
+                <line x1="12" y1="8" x2="12" y2="16" />
+                <line x1="8" y1="12" x2="16" y2="12" />
+              </svg>
+            </div>
+            <span className="text-xs font-bold uppercase tracking-wider text-[#AB82FF]">Inyectar Capital</span>
           </button>
         </div>
 
@@ -724,7 +736,10 @@ export default function HomePage() {
 
         {/* Network & Referrals Row */}
         <div className="grid grid-cols-2 gap-2">
-          <div className="glass-card !p-2.5 flex items-center gap-2.5">
+          <button
+            onClick={() => router.push('/network')}
+            className="glass-card !p-2.5 flex items-center gap-2.5 w-full text-left active:scale-95 transition-transform"
+          >
             <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(52, 211, 153, 0.15)' }}>
               <span className="text-sm">🌐</span>
             </div>
@@ -732,7 +747,7 @@ export default function HomePage() {
               <p className="text-[8px] text-white/40 uppercase tracking-wider">Mi Red</p>
               <p className="text-lg font-bold text-[#34D399] leading-tight">{data.network_count}</p>
             </div>
-          </div>
+          </button>
           <div className="glass-card !p-2.5 flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(102, 187, 106, 0.15)' }}>
               <span className="text-sm">👥</span>
