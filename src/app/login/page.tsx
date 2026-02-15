@@ -49,7 +49,18 @@ export default function LoginPage() {
     <div className="min-h-[calc(100vh-80px)] flex items-center justify-center p-6">
       <div className="glass-card max-w-md w-full p-8 md:p-10 animate-float">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-text-primary mb-2 font-outfit">{t('home.welcome')}</h1>
+          {/* Logo */}
+          <div className="relative mx-auto w-20 h-20 mb-4">
+            <div className="absolute inset-0 bg-emerald-400/20 rounded-full blur-xl animate-pulse" />
+            <img
+              src="/logo.png"
+              alt="VIRTUS Logo"
+              className="relative z-10 w-full h-full object-contain drop-shadow-[0_0_16px_rgba(52,211,153,0.35)]"
+            />
+          </div>
+          <h1 className="text-2xl font-bold tracking-widest text-white mb-1" style={{ fontFamily: 'Orbitron, Outfit, sans-serif' }}>
+            VIRT<span className="text-[#34D399]">U</span>S
+          </h1>
           <p className="text-text-secondary text-sm font-medium">
             {t('login.title')}
           </p>
