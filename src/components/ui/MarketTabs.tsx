@@ -11,14 +11,40 @@ interface Ticker {
 
 type Tab = 'change' | 'losers' | 'turnover'
 
+const LS_KEY = 'virtus_market_cache'
+
+function loadFromStorage(): Ticker[] {
+    try {
+        const raw = localStorage.getItem(LS_KEY)
+        if (!raw) return []
+        const parsed = JSON.parse(raw)
+        return Array.isArray(parsed) ? parsed : []
+    } catch {
+        return []
+    }
+}
+
+function saveToStorage(data: Ticker[]) {
+    try {
+        localStorage.setItem(LS_KEY, JSON.stringify(data))
+    } catch { /* ignore quota errors */ }
+}
+
 export default function MarketTabs() {
     const [data, setData] = useState<Ticker[]>([])
     const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState<Tab>('change')
 
     useEffect(() => {
+        // Carga inmediata desde localStorage para que no quede vacío
+        const cached = loadFromStorage()
+        if (cached.length > 0) {
+            setData(cached)
+            setLoading(false)
+        }
+
         fetchMarketData()
-        const interval = setInterval(fetchMarketData, 10000) // Refresh every 10s
+        const interval = setInterval(fetchMarketData, 60_000) // cada 60s — respeta rate limit
         return () => clearInterval(interval)
     }, [])
 
@@ -28,11 +54,21 @@ export default function MarketTabs() {
             if (res.ok) {
                 const result = await res.json()
                 if (!Array.isArray(result)) return
-                const usdtPairs = result.filter((t: Ticker) => t.symbol.endsWith('USDT') && !t.symbol.includes('UP') && !t.symbol.includes('DOWN'))
-                setData(usdtPairs)
+                const pairs = result.filter((t: Ticker) =>
+                    t.symbol.endsWith('USDT') &&
+                    !t.symbol.includes('UP') &&
+                    !t.symbol.includes('DOWN')
+                )
+                if (pairs.length > 0) {
+                    setData(pairs)
+                    saveToStorage(pairs)
+                }
             }
         } catch (error) {
             console.error('Error fetching market data:', error)
+            // Carga fallback desde localStorage si falló el fetch
+            const cached = loadFromStorage()
+            if (cached.length > 0 && data.length === 0) setData(cached)
         } finally {
             setLoading(false)
         }
@@ -51,13 +87,11 @@ export default function MarketTabs() {
 
     const formatVolume = (vol: string) => {
         const v = parseFloat(vol)
-        if (v >= 1e9) return (v / 1e9).toFixed(2) + 'B'
-        if (v >= 1e6) return (v / 1e6).toFixed(2) + 'M'
-        return v.toFixed(2)
-    }
-
-    const formatSymbol = (symbol: string) => {
-        return symbol.replace('USDT', ' / USDT')
+        if (isNaN(v)) return vol
+        if (v >= 1e9) return (v / 1e9).toFixed(1) + 'B'
+        if (v >= 1e6) return (v / 1e6).toFixed(1) + 'M'
+        if (v >= 1e3) return (v / 1e3).toFixed(1) + 'K'
+        return v.toFixed(0)
     }
 
     const getIconUrl = (symbol: string) => {
@@ -96,46 +130,53 @@ export default function MarketTabs() {
             <div className="p-2">
                 <div className="grid grid-cols-3 text-[10px] text-white/30 px-2 py-2 uppercase tracking-wider">
                     <div className="text-left">Par</div>
-                    <div className="text-right pr-4">Precio</div>
-                    <div className="text-right">{activeTab === 'turnover' ? 'Volumen' : '24h Cambio'}</div>
+                    <div className="text-right pr-2">Precio</div>
+                    <div className="text-right">{activeTab === 'turnover' ? 'Volumen' : '24h'}</div>
                 </div>
 
-                {loading ? (
+                {loading && data.length === 0 ? (
                     <div className="py-8 text-center text-white/30 text-xs animate-pulse">Cargando mercado...</div>
+                ) : data.length === 0 ? (
+                    <div className="py-8 text-center text-white/30 text-xs">Sin datos de mercado</div>
                 ) : (
-                    <div className="space-y-1">
+                    <div className="space-y-0">
                         {displayData.map((item) => {
                             const change = parseFloat(item.priceChangePercent)
                             const isPositive = change >= 0
 
                             return (
-                                <div key={item.symbol} className="grid grid-cols-3 items-center py-2.5 px-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
+                                <div key={item.symbol} className="grid grid-cols-3 items-center py-2.5 px-2 active:bg-white/5 rounded-lg transition-colors cursor-pointer group">
                                     <div className="flex items-center gap-2">
-                                        <div className="w-6 h-6 rounded-full bg-white/5 p-1 flex items-center justify-center overflow-hidden">
+                                        <div className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center overflow-hidden shrink-0">
                                             <img
                                                 src={getIconUrl(item.symbol)}
-                                                alt={item.symbol}
-                                                className="w-full h-full object-contain"
+                                                alt={item.symbol[0]}
+                                                className="w-full h-full object-contain p-0.5"
                                                 onError={(e) => {
-                                                    // Fallback to text if image fails
                                                     e.currentTarget.style.display = 'none'
                                                     e.currentTarget.parentElement!.innerText = item.symbol[0]
                                                 }}
                                             />
                                         </div>
-                                        <span className="text-xs font-bold text-white group-hover:text-[#34D399] transition-colors">{item.symbol.replace('USDT', '')}</span>
-                                        <span className="text-[9px] text-white/30 hidden sm:inline">/ USDT</span>
+                                        <div className="min-w-0">
+                                            <span className="text-xs font-bold text-white group-hover:text-[#34D399] transition-colors truncate block">
+                                                {item.symbol.replace('USDT', '')}
+                                            </span>
+                                            <span className="text-[9px] text-white/30">/ USDT</span>
+                                        </div>
                                     </div>
 
-                                    <div className="text-right pr-4 font-mono text-xs text-white/90">
-                                        {parseFloat(item.lastPrice).toFixed(item.lastPrice.startsWith('0.0') ? 6 : 2)}
+                                    <div className="text-right pr-2 font-mono text-xs text-white/90">
+                                        {parseFloat(item.lastPrice) < 0.01
+                                            ? parseFloat(item.lastPrice).toFixed(6)
+                                            : parseFloat(item.lastPrice).toFixed(2)}
                                     </div>
 
                                     <div className="flex justify-end">
                                         {activeTab === 'turnover' ? (
                                             <span className="text-xs font-medium text-white/60">{formatVolume(item.quoteVolume)}</span>
                                         ) : (
-                                            <div className={`w-16 py-1 rounded text-center text-[10px] font-bold ${isPositive ? 'bg-[#34D399]/20 text-[#34D399]' : 'bg-red-500/20 text-red-500'}`}>
+                                            <div className={`w-[58px] py-1 rounded text-center text-[10px] font-bold ${isPositive ? 'bg-[#34D399]/20 text-[#34D399]' : 'bg-red-500/20 text-red-500'}`}>
                                                 {isPositive ? '+' : ''}{change.toFixed(2)}%
                                             </div>
                                         )}

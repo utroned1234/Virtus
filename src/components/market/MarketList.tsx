@@ -8,11 +8,25 @@ interface Ticker {
     priceChangePercent: string
     lastPrice: string
     quoteVolume: string
-    // Optional for mock data
     name?: string
 }
 
 export type MarketCategory = 'favorites' | 'crypto' | 'futures' | 'forex' | 'indices' | 'stocks' | 'commodities'
+
+const LS_KEY = 'virtus_market_list_cache'
+
+function loadFromStorage(cat: string): Ticker[] {
+    try {
+        const raw = localStorage.getItem(`${LS_KEY}_${cat}`)
+        if (!raw) return []
+        const parsed = JSON.parse(raw)
+        return Array.isArray(parsed) ? parsed : []
+    } catch { return [] }
+}
+
+function saveToStorage(cat: string, data: Ticker[]) {
+    try { localStorage.setItem(`${LS_KEY}_${cat}`, JSON.stringify(data)) } catch { }
+}
 
 export default function MarketList({ category }: { category: MarketCategory }) {
     const [data, setData] = useState<Ticker[]>([])
@@ -37,10 +51,19 @@ export default function MarketList({ category }: { category: MarketCategory }) {
     ]
 
     useEffect(() => {
+        // Mostrar caché inmediatamente mientras carga (solo para crypto/futures)
+        if (!['stocks', 'indices'].includes(category)) {
+            const cached = loadFromStorage(category)
+            if (cached.length > 0) {
+                setData(cached)
+                setLoading(false)
+                setFetchError(false)
+            }
+        }
         setLoading(true)
         setFetchError(false)
         fetchMarketData()
-        const interval = setInterval(fetchMarketData, 10000)
+        const interval = setInterval(fetchMarketData, 60_000) // 60s respeta rate limit
         return () => clearInterval(interval)
     }, [category])
 
@@ -84,14 +107,22 @@ export default function MarketList({ category }: { category: MarketCategory }) {
                     filtered = result.slice(0, 20)
                 }
 
-                setData(filtered)
+                if (filtered.length > 0) {
+                    setData(filtered)
+                    saveToStorage(category, filtered)
+                }
                 setFetchError(false)
             } else {
-                setFetchError(true)
+                // Intenta cargar caché si la API falló
+                const cached = loadFromStorage(category)
+                if (cached.length > 0) { setData(cached); setFetchError(false) }
+                else setFetchError(true)
             }
         } catch (error) {
             console.error('Error fetching market data:', error)
-            setFetchError(true)
+            const cached = loadFromStorage(category)
+            if (cached.length > 0) { setData(cached); setFetchError(false) }
+            else setFetchError(true)
         } finally {
             setLoading(false)
         }
