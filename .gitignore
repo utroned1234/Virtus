@@ -33,6 +33,4 @@ Thumbs.db
 
 # Build artifacts
 tsconfig.tsbuildinfo
-public/*.png
-public/*.jpg
 *.bundle

@@ -27,7 +27,7 @@ export default function MarketTabs() {
             const res = await fetch('/api/market')
             if (res.ok) {
                 const result = await res.json()
-                // Filter for USDT pairs
+                if (!Array.isArray(result)) return
                 const usdtPairs = result.filter((t: Ticker) => t.symbol.endsWith('USDT') && !t.symbol.includes('UP') && !t.symbol.includes('DOWN'))
                 setData(usdtPairs)
             }
