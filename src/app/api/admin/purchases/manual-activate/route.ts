@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth/middleware'
-import { payReferralBonusesWithClient, payBonoRetorno, payInversion } from '@/lib/referrals'
+import { payReferralBonusesWithClient, payBonoRetorno, payInversion, wipeAccumulatedBonuses } from '@/lib/referrals'
 
 // POST: Admin activa un paquete manualmente para cualquier usuario
 export async function POST(req: NextRequest) {
@@ -27,16 +27,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Paquete no encontrado' }, { status: 404 })
     }
 
-    // Validar que el usuario no tenga ya ACTIVO el mismo paquete
-    const existingActive = await prisma.purchase.findFirst({
-      where: { user_id, vip_package_id: vipPackage.id, status: 'ACTIVE' },
+    // Detectar paquete activo actual
+    const currentActivePurchase = await prisma.purchase.findFirst({
+      where: { user_id, status: 'ACTIVE' },
+      include: { vip_package: { select: { level: true, name: true } } },
+      orderBy: { vip_package: { level: 'desc' } },
     })
-    if (existingActive) {
+
+    // Bloquear mismo paquete
+    if (currentActivePurchase?.vip_package_id === vipPackage.id) {
       return NextResponse.json(
-        { error: `El usuario ya tiene el paquete "${vipPackage.name}" activo. Usa la opción de upgrade si deseas cambiar a otro paquete.` },
+        { error: `El usuario ya tiene el paquete "${vipPackage.name}" activo.` },
         { status: 400 }
       )
     }
+
+    // Bloquear paquete menor o igual al activo actual
+    if (currentActivePurchase && vipPackage.level <= currentActivePurchase.vip_package.level) {
+      return NextResponse.json(
+        { error: `No puedes activar un paquete menor o igual al actual "${currentActivePurchase.vip_package.name}". Usa la opción de upgrade.` },
+        { status: 400 }
+      )
+    }
+
+    const isUpgrade = !!currentActivePurchase
 
     const now = new Date()
 
@@ -57,18 +71,27 @@ export async function POST(req: NextRequest) {
           status: 'ACTIVE',
           activated_at: now,
           last_profit_at: now,
+          is_upgrade: isUpgrade,
+          upgraded_from_purchase_id: isUpgrade ? currentActivePurchase!.id : null,
         } as any,
       })
+
+      // Wipe solo en activación nueva ($50 o $150), NUNCA en upgrade
+      if (!isUpgrade && !vipPackage.participates_in_bono_retorno) {
+        await wipeAccumulatedBonuses(tx, user_id)
+      }
 
       // Acreditar inversión al wallet del usuario
       await payInversion(tx, user_id, vipPackage.investment_bs, vipPackage.name)
 
-      // Pagar bonos de referido y bono retorno
-      if (vipPackage.participates_in_referral_bonus) {
-        await payReferralBonusesWithClient(tx, user_id, vipPackage.investment_bs)
-      }
-      if (vipPackage.participates_in_bono_retorno) {
-        await payBonoRetorno(tx, user_id, vipPackage.investment_bs, vipPackage.name)
+      // UPGRADE: no se pagan bonos de ningún tipo
+      if (!isUpgrade) {
+        if (vipPackage.participates_in_referral_bonus) {
+          await payReferralBonusesWithClient(tx, user_id, vipPackage.investment_bs)
+        }
+        if (vipPackage.participates_in_bono_retorno) {
+          await payBonoRetorno(tx, user_id, vipPackage.investment_bs, vipPackage.name)
+        }
       }
 
       return purchase

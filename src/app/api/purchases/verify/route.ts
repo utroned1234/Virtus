@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { verifyBscTransaction } from '@/lib/bsc'
-import { payReferralBonusesWithClient, payBonoRetorno, payInversion } from '@/lib/referrals'
+import { payReferralBonusesWithClient, payBonoRetorno, payInversion, wipeAccumulatedBonuses } from '@/lib/referrals'
 
 export const dynamic = 'force-dynamic'
 
@@ -66,6 +66,11 @@ export async function POST(req: NextRequest) {
                 block_confirmations: result.confirmations ?? requiredConfirmations,
               },
             })
+
+            // Wipe solo en activación nueva ($50 o $150), NUNCA en upgrade
+            if (!isUpgrade && !purchase.vip_package.participates_in_bono_retorno) {
+              await wipeAccumulatedBonuses(tx, purchase.user_id)
+            }
 
             // Acreditar inversión (monto pagado, diferencia si es upgrade)
             await payInversion(tx, purchase.user_id, purchase.investment_bs, purchase.vip_package.name)

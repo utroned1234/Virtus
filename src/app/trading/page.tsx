@@ -1064,43 +1064,38 @@ export default function FuturosPage() {
 
                   return (
                     // Unified card design for both Signal and Manual orders
-                    <div key={order.id} className="relative overflow-hidden bg-[#131B26] p-5 rounded-2xl border border-white/5 shadow-lg group transition-all hover:border-white/10">
+                    <div key={order.id} className="relative overflow-hidden bg-[#131B26] px-4 py-3 rounded-xl border border-white/5 shadow-lg group transition-all hover:border-white/10">
                       <div className={`absolute top-0 left-0 bottom-0 w-1 ${order.type === 'CALL' ? 'bg-[#34D399]' : 'bg-[#FF5A5A]'}`}></div>
 
-                      <div className="flex justify-between items-start mb-4 pl-3">
-                        <div>
-                          <div className={`flex items-center gap-2 text-sm font-black tracking-wider mb-1 ${order.type === 'CALL' ? 'text-[#34D399]' : 'text-[#FF5A5A]'}`}>
-                            {order.type === 'CALL' ? <ArrowUp size={18} strokeWidth={2.5} /> : <ArrowDown size={18} strokeWidth={2.5} />}
+                      <div className="flex justify-between items-center pl-3">
+                        <div className="flex items-center gap-3">
+                          <div className={`flex items-center gap-1.5 text-xs font-black tracking-wider ${order.type === 'CALL' ? 'text-[#34D399]' : 'text-[#FF5A5A]'}`}>
+                            {order.type === 'CALL' ? <ArrowUp size={14} strokeWidth={2.5} /> : <ArrowDown size={14} strokeWidth={2.5} />}
                             <span>{order.type === 'CALL' ? 'ALZA' : 'BAJA'}</span>
                           </div>
-                          <div className="text-[10px] text-gray-500 font-bold bg-white/5 px-2 py-0.5 rounded w-fit">x{order.leverage}</div>
+                          <div className="text-[9px] text-gray-500 font-bold bg-white/5 px-1.5 py-0.5 rounded">x{order.leverage}</div>
                         </div>
 
-                        <div className="text-right">
-                          <div className={`text-2xl font-black font-[Orbitron] tracking-tight ${displayPnl >= 0 ? 'text-[#34D399]' : 'text-[#FF5A5A]'}`}>
-                            {displayPnl >= 0 ? '+' : ''}{displayPnl.toFixed(2)}
+                        <div className={`text-lg font-black font-[Orbitron] tracking-tight ${displayPnl >= 0 ? 'text-[#34D399]' : 'text-[#FF5A5A]'}`}>
+                          {displayPnl >= 0 ? '+' : ''}{displayPnl.toFixed(2)}
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between items-center pl-3 mt-2 pt-2 border-t border-white/5">
+                        <div className="flex gap-4">
+                          <div>
+                            <div className="text-[8px] text-gray-600 uppercase font-bold">Inversión</div>
+                            <div className="text-xs font-bold text-white">${order.amount.toFixed(2)}</div>
                           </div>
-                          <div className="text-[9px] text-gray-600 font-bold uppercase tracking-wider mt-0.5">Ganancia</div>
                         </div>
-                      </div>
 
-                      <div className="grid grid-cols-2 gap-4 pl-3 border-t border-white/5 pt-4">
-                        <div>
-                          <div className="text-[9px] text-gray-600 uppercase font-bold mb-1">Inversión</div>
-                          <div className="text-sm font-bold text-white tracking-wide">${order.amount}</div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-[9px] text-gray-600 uppercase font-bold mb-1">Entrada</div>
-                          <div className="text-sm font-bold text-white font-[Orbitron] tracking-wide">{order.entryPrice}</div>
-                        </div>
+                        <button
+                          onClick={() => closePosition(order.id)}
+                          className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-[9px] font-bold text-gray-400 hover:text-white transition-all uppercase tracking-wider"
+                        >
+                          Cerrar
+                        </button>
                       </div>
-
-                      <button
-                        onClick={() => closePosition(order.id)}
-                        className="w-full mt-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-[10px] font-bold text-gray-400 hover:text-white transition-all uppercase tracking-widest pl-3 flex items-center justify-center gap-2"
-                      >
-                        Cerrar Operación
-                      </button>
                     </div>
                   )
                 })}

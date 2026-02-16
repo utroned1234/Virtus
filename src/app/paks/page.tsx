@@ -19,7 +19,8 @@ interface VipPackage {
 interface PurchasedPackage {
   id: number
   status: string
-  investment_bs: number
+  investment_bs: number      // monto pagado (puede ser diferencia de upgrade)
+  pkg_investment_bs: number  // valor real del paquete (para calcular diferencias correctas)
   level: number
 }
 
@@ -51,6 +52,7 @@ export default function PaksPage() {
               id: purchase.vip_package_id,
               status: purchase.status,
               investment_bs: purchase.investment_bs,
+              pkg_investment_bs: purchase.vip_package?.investment_bs ?? purchase.investment_bs,
               level: purchase.vip_package?.level ?? 0,
             }))
             .filter((p: PurchasedPackage) => typeof p.id === 'number')
@@ -165,10 +167,12 @@ export default function PaksPage() {
             // Detect if this package is an upgrade option
             const isUpgrade = !isPurchased && activeHighest !== null && pkg.level > activeHighest.level
             const upgradeDiff = isUpgrade && activeHighest
-              ? pkg.investment_bs - activeHighest.investment_bs
+              ? pkg.investment_bs - activeHighest.pkg_investment_bs
               : 0
 
-            const isDisabled = !pkg.is_enabled || isActive
+            // Bloquear paquetes menores o iguales al activo actual
+            const isBlockedByActive = activeHighest !== null && pkg.level <= activeHighest.level
+            const isDisabled = !pkg.is_enabled || isActive || isBlockedByActive
             const tier = getPackageTier(pkg.level)
 
             return (
@@ -286,13 +290,13 @@ export default function PaksPage() {
                       color: isDisabled ? `rgba(${tier.colorRgb}, 0.4)` : tier.color,
                     }}
                   >
-                    {isActive
-                      ? '✓ Activo'
+                    {isBlockedByActive
+                      ? 'Bloqueado'
                       : isUpgrade
-                        ? `Upgrade +$${upgradeDiff.toLocaleString()}`
-                        : pkg.is_enabled
-                          ? 'Activar'
-                          : 'No Disponible'}
+                          ? `Upgrade +$${upgradeDiff.toLocaleString()}`
+                          : pkg.is_enabled
+                            ? 'Activar'
+                            : 'No Disponible'}
                   </button>
                 </div>
               </div>

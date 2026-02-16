@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/auth/middleware'
 import { verifyBscTransaction, txExistsOnChain } from '@/lib/bsc'
-import { payReferralBonusesWithClient, payBonoRetorno, payInversion } from '@/lib/referrals'
+import { payReferralBonusesWithClient, payBonoRetorno, payInversion, wipeAccumulatedBonuses } from '@/lib/referrals'
 
 export async function POST(req: NextRequest) {
   const authResult = requireAuth(req)
@@ -73,14 +73,20 @@ export async function POST(req: NextRequest) {
       orderBy: { vip_package: { level: 'desc' } },
     })
 
-    const isUpgrade = !!(
-      currentActivePurchase &&
-      currentActivePurchase.vip_package.level < vipPackage.level
-    )
+    // Bloquear paquetes menores o iguales al actual
+    if (currentActivePurchase && currentActivePurchase.vip_package.level >= vipPackage.level) {
+      return NextResponse.json(
+        { error: 'No puedes comprar un paquete igual o menor al que ya tienes activo' },
+        { status: 400 }
+      )
+    }
+
+    const isUpgrade = !!currentActivePurchase
 
     // Amount to verify on BSC: full price OR only the difference for upgrades
+    // Use vip_package.investment_bs (not purchase.investment_bs which may be a previous diff)
     const amountToVerify = isUpgrade
-      ? vipPackage.investment_bs - currentActivePurchase!.investment_bs
+      ? vipPackage.investment_bs - currentActivePurchase!.vip_package.investment_bs
       : vipPackage.investment_bs
 
     if (amountToVerify <= 0) {
@@ -135,6 +141,11 @@ export async function POST(req: NextRequest) {
               upgraded_from_purchase_id: isUpgrade ? currentActivePurchase!.id : null,
             } as any,
           })
+
+          // Wipe solo en activación nueva ($50 o $150), NUNCA en upgrade
+          if (!isUpgrade && !vipPackage.participates_in_bono_retorno) {
+            await wipeAccumulatedBonuses(tx, authResult.user.userId)
+          }
 
           // Acreditar la inversión (monto pagado, diferencia si es upgrade)
           await payInversion(tx, authResult.user.userId, amountToVerify, vipPackage.name)

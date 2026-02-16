@@ -182,17 +182,17 @@ export default function AdminPage() {
   const [receiptUploading, setReceiptUploading] = useState(false)
 
   // Activación manual de paquete
-  const [manualUsers, setManualUsers] = useState<{ id: string; username: string; full_name: string }[]>([])
+  const [manualUsers, setManualUsers] = useState<{ id: string; username: string; full_name: string; active_vip_level: number | null }[]>([])
   const [manualUserSearch, setManualUserSearch] = useState('')
-  const [manualSelectedUser, setManualSelectedUser] = useState<{ id: string; username: string; full_name: string } | null>(null)
+  const [manualSelectedUser, setManualSelectedUser] = useState<{ id: string; username: string; full_name: string; active_vip_level: number | null } | null>(null)
   const [manualSelectedPackage, setManualSelectedPackage] = useState<number | null>(null)
   const [manualActivating, setManualActivating] = useState(false)
   const [showManualForm, setShowManualForm] = useState(false)
 
   // Upgrade manual de paquete
-  const [upgradeUsers, setUpgradeUsers] = useState<{ id: string; username: string; full_name: string }[]>([])
+  const [upgradeUsers, setUpgradeUsers] = useState<{ id: string; username: string; full_name: string; active_vip_level: number | null }[]>([])
   const [upgradeUserSearch, setUpgradeUserSearch] = useState('')
-  const [upgradeSelectedUser, setUpgradeSelectedUser] = useState<{ id: string; username: string; full_name: string } | null>(null)
+  const [upgradeSelectedUser, setUpgradeSelectedUser] = useState<{ id: string; username: string; full_name: string; active_vip_level: number | null } | null>(null)
   const [upgradeSelectedPackage, setUpgradeSelectedPackage] = useState<number | null>(null)
   const [upgrading, setUpgrading] = useState(false)
   const [showUpgradeForm, setShowUpgradeForm] = useState(false)
@@ -609,7 +609,7 @@ export default function AdminPage() {
           u.full_name.toLowerCase().includes(lower)
         )
         .slice(0, 10)
-        .map((u: any) => ({ id: u.id, username: u.username, full_name: u.full_name }))
+        .map((u: any) => ({ id: u.id, username: u.username, full_name: u.full_name, active_vip_level: u.active_vip_level ?? null }))
       setManualUsers(filtered)
     } catch { setManualUsers([]) }
   }
@@ -658,7 +658,7 @@ export default function AdminPage() {
           u.full_name.toLowerCase().includes(lower)
         )
         .slice(0, 10)
-        .map((u: any) => ({ id: u.id, username: u.username, full_name: u.full_name }))
+        .map((u: any) => ({ id: u.id, username: u.username, full_name: u.full_name, active_vip_level: u.active_vip_level ?? null }))
       setUpgradeUsers(filtered)
     } catch { setUpgradeUsers([]) }
   }
@@ -1023,11 +1023,13 @@ export default function AdminPage() {
                           onChange={(e) => setManualSelectedPackage(e.target.value ? Number(e.target.value) : null)}
                         >
                           <option value="">Seleccionar paquete...</option>
-                          {packages.filter(p => p.is_enabled).map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.name} – ${p.investment_bs.toFixed(2)}
-                            </option>
-                          ))}
+                          {packages
+                            .filter(p => p.is_enabled && (manualSelectedUser?.active_vip_level == null || p.level > manualSelectedUser.active_vip_level))
+                            .map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.name} – ${p.investment_bs.toFixed(2)}
+                              </option>
+                            ))}
                         </select>
                       </div>
 
@@ -1113,11 +1115,13 @@ export default function AdminPage() {
                           onChange={(e) => setUpgradeSelectedPackage(e.target.value ? Number(e.target.value) : null)}
                         >
                           <option value="">Seleccionar paquete...</option>
-                          {packages.filter(p => p.is_enabled).map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.name} – ${p.investment_bs.toFixed(2)}
-                            </option>
-                          ))}
+                          {packages
+                            .filter(p => p.is_enabled && (upgradeSelectedUser?.active_vip_level == null || p.level > upgradeSelectedUser.active_vip_level))
+                            .map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.name} – ${p.investment_bs.toFixed(2)}
+                              </option>
+                            ))}
                         </select>
                       </div>
 

@@ -76,9 +76,9 @@ export async function POST(req: NextRequest) {
         }
 
         await prisma.$transaction(async (tx) => {
-          // Cerrar la FutureOrder como WIN
-          await tx.futureOrder.update({
-            where: { id: order.id },
+          // Prevent double-close: only update if still ACTIVE
+          const updated = await tx.futureOrder.updateMany({
+            where: { id: order.id, status: 'ACTIVE' },
             data: {
               status: 'WIN',
               exit_price: execution.capital_before + execution.capital_added,
@@ -86,9 +86,22 @@ export async function POST(req: NextRequest) {
             },
           })
 
+          // If already closed by another process, skip wallet credits
+          if (updated.count === 0) return
+
+          // Credit 40% gain to user's wallet
+          await tx.walletLedger.create({
+            data: {
+              user_id: userId,
+              type: 'SENAL_PROFIT',
+              amount_bs: execution.capital_added,
+              description: `Ganancia señal (40% de ${execution.gain_total.toFixed(2)})`,
+            },
+          })
+
           // Distribuir GLOBAL_BONUS a cada ascendente con rango
           for (const ancestor of ancestors) {
-            const bonusAmount = execution.global_bonus * ancestor.rankPct
+            const bonusAmount = Math.round(execution.global_bonus * ancestor.rankPct * 100) / 100
             if (bonusAmount > 0) {
               await tx.walletLedger.create({
                 data: {

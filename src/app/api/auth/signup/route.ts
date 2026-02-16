@@ -16,9 +16,9 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const { sponsor_code, full_name, username, email, password, country, language } = await req.json()
+    const { sponsor_code, full_name, username, email, password, country, language, carnet } = await req.json()
 
-    if (!full_name || !username || !email || !password) {
+    if (!full_name || !username || !email || !password || !carnet) {
       return NextResponse.json(
         { error: 'Todos los campos son requeridos' },
         { status: 400 }
@@ -67,6 +67,7 @@ export async function POST(req: NextRequest) {
         email,
         password_hash,
         full_name,
+        carnet: carnet || null,
         sponsor_id,
         country: country || null,
         language: language || 'es',
