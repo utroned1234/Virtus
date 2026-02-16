@@ -181,7 +181,7 @@ export default function HomePage() {
 
   const submitTaskCompletion = async () => {
     if (!selectedTask || taskRating === 0 || taskComment.trim().length < 3) {
-      showToast('Por favor califica y comenta la imagen', 'error')
+      showToast(t('home.taskRate'), 'error')
       return
     }
 
@@ -209,7 +209,7 @@ export default function HomePage() {
       const result = await res.json()
 
       if (res.ok) {
-        showToast('Tarea completada', 'success')
+        showToast(t('home.taskDone'), 'success')
         setShowTaskModal(false)
         setSelectedTask(null)
         fetchDailyTasks()
@@ -217,10 +217,10 @@ export default function HomePage() {
           setAllTasksCompleted(true)
         }
       } else {
-        showToast(result.error || 'Error al completar tarea', 'error')
+        showToast(result.error || t('home.taskError'), 'error')
       }
     } catch (error) {
-      showToast('Error al completar tarea', 'error')
+      showToast(t('home.taskError'), 'error')
     } finally {
       setSubmittingTask(false)
     }
@@ -238,7 +238,7 @@ export default function HomePage() {
 
       if (!token) {
         setMissingToken(true)
-        setError('Tu sesión expiró. Inicia sesión nuevamente.')
+        setError(t('home.sessionExpired'))
         return
       }
 
@@ -285,7 +285,7 @@ export default function HomePage() {
     const file = e.target.files?.[0]
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        showToast('La imagen debe ser menor a 5MB', 'error')
+        showToast(t('home.imageTooBig'), 'error')
         return
       }
       setSelectedFile(file)
@@ -299,7 +299,7 @@ export default function HomePage() {
 
   const handleUpdateProfileImage = async () => {
     if (!selectedFile) {
-      showToast('Por favor selecciona una imagen', 'error')
+      showToast(t('home.selectImageRequired'), 'error')
       return
     }
 
@@ -311,7 +311,7 @@ export default function HomePage() {
         ?.split('=')[1]
 
       if (!token) {
-        showToast('Sesión expirada', 'error')
+        showToast(t('home.sessionExpired'), 'error')
         setUploadingPhoto(false)
         return
       }
@@ -332,7 +332,7 @@ export default function HomePage() {
           })
 
           if (!uploadRes.ok) {
-            showToast('Error al subir la imagen', 'error')
+            showToast(t('home.uploadError'), 'error')
             setUploadingPhoto(false)
             return
           }
@@ -363,17 +363,17 @@ export default function HomePage() {
             setPreviewUrl(null)
             fetchDashboard()
           } else {
-            showToast('Error al actualizar la foto', 'error')
+            showToast(t('home.updatePhotoError'), 'error')
           }
         } catch (err) {
           console.error('Error in upload:', err)
-          showToast('Error al subir la imagen', 'error')
+          showToast(t('home.uploadError'), 'error')
         }
         setUploadingPhoto(false)
       }
     } catch (error) {
       console.error('Error updating profile image:', error)
-      showToast('Error al actualizar la foto', 'error')
+      showToast(t('home.updatePhotoError'), 'error')
       setUploadingPhoto(false)
     }
   }
@@ -388,7 +388,7 @@ export default function HomePage() {
     try {
       if (navigator?.clipboard?.writeText) {
         await navigator.clipboard.writeText(referralCopyText)
-        showToast('Link copiado', 'success')
+        showToast(t('home.linkCopied'), 'success')
         return
       }
     } catch (err) {
@@ -404,10 +404,10 @@ export default function HomePage() {
     textarea.select()
     const ok = document.execCommand('copy')
     document.body.removeChild(textarea)
-    showToast(ok ? 'Link copiado' : 'No se pudo copiar el link', ok ? 'success' : 'error')
+    showToast(ok ? t('home.linkCopied') : t('home.linkCopyFailed'), ok ? 'success' : 'error')
   }
 
-  if (loading) return <div className="p-8 text-center text-primary animate-pulse">Cargando datos...</div>
+  if (loading) return <div className="p-8 text-center text-primary animate-pulse">{t('home.loading')}</div>
 
   if (!data) {
     return (
@@ -420,11 +420,11 @@ export default function HomePage() {
               </p>
               <div className="flex gap-3 justify-center">
                 <Button variant="primary" onClick={fetchDashboard}>
-                  Reintentar
+                  {t('home.retry')}
                 </Button>
                 {missingToken && (
                   <Button variant="outline" onClick={() => router.push('/login')}>
-                    Ir a Login
+                    {t('home.goLogin')}
                   </Button>
                 )}
               </div>
@@ -582,7 +582,7 @@ export default function HomePage() {
                 <path d="M16 10a4 4 0 0 1-8 0" />
               </svg>
             </div>
-            <span className="text-xs font-bold uppercase tracking-wider text-[#34D399]">Mis Compras</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-[#34D399]">{t('home.myPurchases')}</span>
           </button>
           <button
             onClick={() => router.push('/paks')}
@@ -600,7 +600,7 @@ export default function HomePage() {
                 <line x1="8" y1="12" x2="16" y2="12" />
               </svg>
             </div>
-            <span className="text-xs font-bold uppercase tracking-wider text-[#AB82FF]">Inyectar Capital</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-[#AB82FF]">{t('home.injectCapital')}</span>
           </button>
         </div>
 
@@ -619,7 +619,7 @@ export default function HomePage() {
             className="text-left glass-card !p-2.5 transition-all duration-300"
           >
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[8px] font-bold text-[#66BB6A] uppercase tracking-wider">Patrocinio</span>
+              <span className="text-[8px] font-bold text-[#66BB6A] uppercase tracking-wider">{t('home.sponsorship')}</span>
               <svg
                 className={`w-3 h-3 text-[#66BB6A]/50 transition-transform duration-300 ${showBonusDetail ? 'rotate-180' : ''}`}
                 fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"
@@ -631,7 +631,7 @@ export default function HomePage() {
               ${data.referral_bonus_total.toFixed(2)}
             </p>
             <p className="text-[8px] text-white/30 mt-0.5">
-              3 niveles
+              {t('home.levels')}
             </p>
 
             {/* Detalle expandible */}
@@ -640,7 +640,7 @@ export default function HomePage() {
                 <div className="space-y-1">
                   {data.referral_bonus_levels.map((item) => (
                     <div key={item.level} className="flex justify-between items-center text-[9px]">
-                      <span className="text-white/50">Nv{item.level} <span className="text-[#34D399]">{item.percentage}%</span></span>
+                      <span className="text-white/50">{t('home.level')}{item.level} <span className="text-[#34D399]">{item.percentage}%</span></span>
                       <span className="text-white/70 font-medium">${item.amount_bs.toFixed(2)}</span>
                     </div>
                   ))}
@@ -655,7 +655,7 @@ export default function HomePage() {
             className="text-left glass-card !p-2.5 transition-all duration-300"
           >
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[8px] font-bold text-[#FFB74D] uppercase tracking-wider">Compartido</span>
+              <span className="text-[8px] font-bold text-[#FFB74D] uppercase tracking-wider">{t('home.shared')}</span>
               <svg
                 className={`w-3 h-3 text-[#FFB74D]/50 transition-transform duration-300 ${showSharedDetail ? 'rotate-180' : ''}`}
                 fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"
@@ -667,7 +667,7 @@ export default function HomePage() {
               ${data.shared_bonus.toFixed(2)}
             </p>
             <p className="text-[8px] text-white/30 mt-0.5">
-              {data.sponsor_name ? `de ${data.sponsor_name}` : '1.5% repartido'}
+              {data.sponsor_name ? t('home.sharedFrom').replace('{{name}}', data.sponsor_name) : t('home.sharedDistributed')}
             </p>
 
             {/* Detalle expandible */}
@@ -686,7 +686,7 @@ export default function HomePage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-[9px] text-white/40 text-center">Sin bonos aún</p>
+                <p className="text-[9px] text-white/40 text-center">{t('home.noBonuses')}</p>
               )}
             </div>
           </button>
@@ -697,7 +697,7 @@ export default function HomePage() {
             className="text-left glass-card !p-2.5 transition-all duration-300"
           >
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[8px] font-bold text-[#AB47BC] uppercase tracking-wider">B. Extra</span>
+              <span className="text-[8px] font-bold text-[#AB47BC] uppercase tracking-wider">{t('home.extrasLabel')}</span>
               <svg
                 className={`w-3 h-3 text-[#AB47BC]/50 transition-transform duration-300 ${showExtrasDetail ? 'rotate-180' : ''}`}
                 fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"
@@ -709,7 +709,7 @@ export default function HomePage() {
               ${data.adjustments.total.toFixed(2)}
             </p>
             <p className="text-[8px] text-white/30 mt-0.5">
-              {data.adjustments.items.length > 0 ? `${data.adjustments.items.length} movimientos` : 'Sin extras'}
+              {data.adjustments.items.length > 0 ? t('home.movements').replace('{{n}}', String(data.adjustments.items.length)) : t('home.noExtras')}
             </p>
 
             {/* Detalle expandible */}
@@ -728,7 +728,7 @@ export default function HomePage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-[9px] text-white/40 text-center">Sin bonos extra</p>
+                <p className="text-[9px] text-white/40 text-center">{t('home.noExtrasBonuses')}</p>
               )}
             </div>
           </button>
@@ -744,7 +744,7 @@ export default function HomePage() {
               <span className="text-sm">🌐</span>
             </div>
             <div>
-              <p className="text-[8px] text-white/40 uppercase tracking-wider">Mi Red</p>
+              <p className="text-[8px] text-white/40 uppercase tracking-wider">{t('home.myNetwork')}</p>
               <p className="text-lg font-bold text-[#34D399] leading-tight">{data.network_count}</p>
             </div>
           </button>
@@ -753,7 +753,7 @@ export default function HomePage() {
               <span className="text-sm">👥</span>
             </div>
             <div>
-              <p className="text-[8px] text-white/40 uppercase tracking-wider">Directos</p>
+              <p className="text-[8px] text-white/40 uppercase tracking-wider">{t('home.directs')}</p>
               <p className="text-lg font-bold text-[#66BB6A] leading-tight">{data.direct_referrals}</p>
             </div>
           </div>
@@ -768,7 +768,7 @@ export default function HomePage() {
             onClick={copyReferralLink}
             className="w-full flex items-center justify-center gap-2 px-8 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(52,211,153,0.15)] active:scale-95 group/btn bg-[#131B26] border border-white/5 hover:border-[#34D399]/30"
           >
-            <span className="text-[#34D399]">COPIAR LINK DE REFERIDO</span>
+            <span className="text-[#34D399]">{t('home.copyReferralLink')}</span>
             <span className="group-hover/btn:translate-x-1 transition-transform opacity-50 group-hover:opacity-100">📋</span>
           </button>
         </div>
@@ -779,7 +779,7 @@ export default function HomePage() {
       </div>
 
       <p className="mt-8 text-[10px] text-white/20 text-center px-4">
-        © 2026 Virtus. Todos los derechos reservados. El contenido y la marca están protegidos por la legislación vigente.
+        {t('common.copyright')}
       </p>
 
 
@@ -788,7 +788,7 @@ export default function HomePage() {
         <div className="fixed inset-0 z-50 bg-black bg-opacity-80 flex items-center justify-center p-4">
           <div className="bg-card-bg rounded-2xl p-6 max-w-md w-full space-y-4 border border-card-border">
             <div className="flex items-center justify-between">
-              <h3 className="text-primary font-bold">Actualizar foto de perfil</h3>
+              <h3 className="text-primary font-bold">{t('home.updatePhoto')}</h3>
               <button
                 onClick={() => {
                   setShowPhotoModal(false)
@@ -801,7 +801,7 @@ export default function HomePage() {
               </button>
             </div>
             <p className="text-text-secondary text-xs">
-              Selecciona una foto desde tu dispositivo (máx. 5MB)
+              {t('home.photoDesc')}
             </p>
 
             {/* Preview de la imagen */}
@@ -814,7 +814,7 @@ export default function HomePage() {
                 />
               ) : (
                 <div className="w-24 h-24 rounded-full bg-gray-100 border-2 border-dashed border-primary/50 flex items-center justify-center">
-                  <span className="text-text-secondary text-xs text-center px-2">Sin foto</span>
+                  <span className="text-text-secondary text-xs text-center px-2">{t('home.noPhoto')}</span>
                 </div>
               )}
             </div>
@@ -823,7 +823,7 @@ export default function HomePage() {
             <label className="block w-full cursor-pointer">
               <div className="w-full px-4 py-3 bg-gray-50 border border-card-border rounded-xl text-center hover:border-primary transition-colors">
                 <span className="text-primary text-sm">
-                  {selectedFile ? selectedFile.name : 'Seleccionar imagen'}
+                  {selectedFile ? selectedFile.name : t('home.selectImage')}
                 </span>
               </div>
               <input
@@ -840,7 +840,7 @@ export default function HomePage() {
               onClick={handleUpdateProfileImage}
               disabled={uploadingPhoto || !selectedFile}
             >
-              {uploadingPhoto ? 'Subiendo...' : 'Guardar foto'}
+              {uploadingPhoto ? t('home.uploading') : t('home.savePhoto')}
             </Button>
           </div>
         </div>
@@ -897,7 +897,7 @@ export default function HomePage() {
                     fontFamily: 'Orbitron, sans-serif',
                   }}
                 >
-                  Visitar Sitio Web Oficial
+                  {t('home.visitSite')}
                 </a>
               </div>
             </div>
@@ -913,7 +913,7 @@ export default function HomePage() {
                   fontFamily: 'Orbitron, sans-serif',
                 }}
               >
-                Continuar
+                {t('home.continueBtn')}
               </button>
             </div>
           </div>

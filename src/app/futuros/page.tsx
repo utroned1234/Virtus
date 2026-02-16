@@ -19,6 +19,7 @@ import {
   CheckCircle2
 } from 'lucide-react'
 import BottomNav from '../../components/ui/BottomNav'
+import { useLanguage } from '@/context/LanguageContext'
 
 // --- Types ---
 interface TradeOrder {
@@ -59,6 +60,7 @@ const PAIRS = [
 ]
 
 export default function FuturosPage() {
+  const { t } = useLanguage()
   const chartRef = useRef<HTMLDivElement>(null)
   const chartInstance = useRef<echarts.ECharts | null>(null)
 
@@ -183,7 +185,7 @@ export default function FuturosPage() {
 
   // --- Trading Logic ---
   const placeOrder = async (type: 'CALL' | 'PUT') => {
-    if (balance < tradeAmount) return alert('Saldo insuficiente')
+    if (balance < tradeAmount) return alert(t('futuros.insufficientBalance'))
     try {
       const token = document.cookie.split('; ').find(row => row.startsWith('auth_token='))?.split('=')[1]
       const res = await fetch('/api/futuros/order', {
@@ -207,8 +209,8 @@ export default function FuturosPage() {
         setActiveOrders([newOrder, ...activeOrders])
         setBalance(prev => prev - tradeAmount)
         setShowConfirm(false)
-      } else { alert('Error al operar') }
-    } catch { alert('Error de conexión') }
+      } else { alert(t('futuros.errorOpening')) }
+    } catch { alert(t('futuros.errorConnection')) }
   }
 
   // --- UI Helpers ---
@@ -241,7 +243,7 @@ export default function FuturosPage() {
       <div className="flex items-center gap-4 px-4 py-3 bg-[#161A1E] text-[#848E9C] text-sm overflow-x-auto whitespace-nowrap scrollbar-hide">
         <span className="text-[#EAECEF] font-bold text-base">USDⓈ-M</span>
         <span>COIN-M</span>
-        <span>Opciones</span>
+        <span>{t('futuros.options')}</span>
         <span>Smart Money</span>
         <div className="ml-auto" onClick={() => setShowSidebar(true)}><Menu className="text-[#848E9C]" size={20} /></div>
       </div>
@@ -267,7 +269,7 @@ export default function FuturosPage() {
       {/* Funding & Countdown */}
       <div className="px-4 flex gap-4 text-[10px] text-[#848E9C] mb-2">
         <div className="flex-1 flex justify-between border-r border-[#2B3139] pr-2">
-          <span>Financiación / Cuenta reg...</span>
+          <span>{t('futuros.funding')}</span>
           <span className="text-[#F0B90B]">0.0100% / 03:22:45</span>
         </div>
       </div>
@@ -279,8 +281,8 @@ export default function FuturosPage() {
         {/* Left: Order Book */}
         <div className="col-span-5 pr-1">
           <div className="flex justify-between text-[10px] text-[#848E9C] mb-1">
-            <span>Precio</span>
-            <span>Monto</span>
+            <span>{t('futuros.price')}</span>
+            <span>{t('futuros.amount')}</span>
           </div>
           <div className="flex flex-col gap-[1px]">
             {asks.map((ask, i) => (
@@ -322,13 +324,13 @@ export default function FuturosPage() {
         <div className="col-span-7 pl-2">
           {/* Mode Buttons */}
           <div className="flex gap-1 mb-3">
-            <button className="bg-[#2B3139] text-[#EAECEF] text-[10px] font-bold py-1 px-3 rounded flex-1">Cruzado</button>
+            <button className="bg-[#2B3139] text-[#EAECEF] text-[10px] font-bold py-1 px-3 rounded flex-1">{t('futuros.crossed')}</button>
             <button className="bg-[#2B3139] text-[#EAECEF] text-[10px] font-bold py-1 px-3 rounded flex-1">{tradeLeverage}x</button>
             <button className="bg-[#2B3139] text-[#EAECEF] text-[10px] font-bold py-1 px-3 rounded">S</button>
           </div>
 
           <div className="flex justify-between text-[10px] text-[#848E9C] mb-1">
-            <span>Disponible</span>
+            <span>{t('futuros.available')}</span>
             <span className="text-[#EAECEF] flex items-center gap-1">{balance.toFixed(2)} USDT <Plus size={10} className="bg-[#FCD535] text-black rounded-full p-[1px]" /></span>
           </div>
 
@@ -343,7 +345,7 @@ export default function FuturosPage() {
             <button className="p-3 text-[#848E9C]" onClick={() => setTradePrice((parseFloat(tradePrice) - 1).toFixed(1))}><Minus size={14} /></button>
             <div className="flex-1 text-center">
               {orderType === 'Market' ? (
-                <span className="text-[#848E9C] text-xs">Precio de Mercado</span>
+                <span className="text-[#848E9C] text-xs">{t('futuros.marketPrice')}</span>
               ) : (
                 <input
                   className="bg-transparent text-center text-[#EAECEF] text-sm font-bold w-full outline-none"
@@ -351,7 +353,7 @@ export default function FuturosPage() {
                   onChange={e => setTradePrice(e.target.value)}
                 />
               )}
-              {orderType !== 'Market' && <div className="text-[9px] text-[#848E9C]">Precio (USDT)</div>}
+              {orderType !== 'Market' && <div className="text-[9px] text-[#848E9C]">{t('futuros.priceUsdt')}</div>}
             </div>
             <button className="p-3 text-[#848E9C]" onClick={() => setTradePrice((parseFloat(tradePrice) + 1).toFixed(1))}><Plus size={14} /></button>
           </div>
@@ -364,9 +366,9 @@ export default function FuturosPage() {
                 className="bg-transparent text-center text-[#EAECEF] text-sm font-bold w-full outline-none"
                 value={tradeAmount}
                 onChange={e => setTradeAmount(parseFloat(e.target.value))}
-                placeholder="Monto"
+                placeholder={t('futuros.amount')}
               />
-              <div className="text-[9px] text-[#848E9C]">Monto (USDT)</div>
+              <div className="text-[9px] text-[#848E9C]">{t('futuros.amountUsdt')}</div>
             </div>
             <button className="p-3 text-[#848E9C]" onClick={() => setTradeAmount(tradeAmount + 10)}><Plus size={14} /></button>
           </div>
@@ -410,14 +412,14 @@ export default function FuturosPage() {
               onClick={() => { setPendingType('CALL'); setShowConfirm(true) }}
               className="flex-1 bg-[#0ECB81] py-2 rounded text-white font-bold text-sm"
             >
-              Comprar
+              {t('futuros.buy')}
               <div className="text-[9px] font-normal opacity-80">Long</div>
             </button>
             <button
               onClick={() => { setPendingType('PUT'); setShowConfirm(true) }}
               className="flex-1 bg-[#F6465D] py-2 rounded text-white font-bold text-sm"
             >
-              Vender
+              {t('futuros.sell')}
               <div className="text-[9px] font-normal opacity-80">Short</div>
             </button>
           </div>
@@ -431,19 +433,19 @@ export default function FuturosPage() {
             onClick={() => setActiveTab('positions')}
             className={`px-4 py-3 border-b-2 transition-colors ${activeTab === 'positions' ? 'text-[#EAECEF] border-[#F0B90B]' : 'border-transparent'}`}
           >
-            Posiciones ({activeOrders.length})
+            {t('futuros.positions')} ({activeOrders.length})
           </div>
           <div
             onClick={() => setActiveTab('orders')}
             className={`px-4 py-3 border-b-2 transition-colors ${activeTab === 'orders' ? 'text-[#EAECEF] border-[#F0B90B]' : 'border-transparent'}`}
           >
-            Órdenes Abiertas ({historyOrders.length})
+            {t('futuros.openOrders')} ({historyOrders.length})
           </div>
           <div
             onClick={() => setActiveTab('bots')}
             className={`px-4 py-3 border-b-2 transition-colors ${activeTab === 'bots' ? 'text-[#EAECEF] border-[#F0B90B]' : 'border-transparent'}`}
           >
-            Bots
+            {t('futuros.bots')}
           </div>
         </div>
       </div>
@@ -451,12 +453,12 @@ export default function FuturosPage() {
       {/* Empty State */}
       <div className="flex flex-col items-center justify-center py-10 text-[#5E6673]">
         <FileText size={40} className="mb-2 opacity-20" />
-        <span className="text-sm">No tiene ninguna posición</span>
+        <span className="text-sm">{t('futuros.noPosition')}</span>
       </div>
 
       {/* Bottom Sheet Trigger */}
       <div className="fixed bottom-16 left-0 right-0 py-2 border-t border-[#2B3139] bg-[#161A1E] text-center text-xs text-[#848E9C] flex items-center justify-center gap-2">
-        Gráfico de {currentPair.replace('/', '')} Perpetuo
+        {t('futuros.chartLabel').replace('{{pair}}', currentPair.replace('/', ''))}
         <ArrowUp size={12} />
       </div>
 
@@ -465,7 +467,7 @@ export default function FuturosPage() {
         <div className="fixed inset-0 z-50 flex">
           <div className="fixed inset-0 bg-black/50" onClick={() => setShowSidebar(false)}></div>
           <div className="relative bg-[#1E2329] w-3/4 max-w-xs h-full p-4 flex flex-col">
-            <h2 className="text-xl font-bold text-[#EAECEF] mb-4">Mercados</h2>
+            <h2 className="text-xl font-bold text-[#EAECEF] mb-4">{t('futuros.markets')}</h2>
             <div className="space-y-2 overflow-y-auto flex-1">
               {PAIRS.map(pair => (
                 <button
@@ -483,11 +485,11 @@ export default function FuturosPage() {
 
       {showConfirm && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
         <div className="bg-[#1E2329] p-6 rounded-lg w-3/4">
-          <h3 className="text-lg font-bold mb-4">Confirmar Orden</h3>
-          <p className="mb-4 text-sm text-[#848E9C]">Estás a punto de abrir una posición {pendingType === 'CALL' ? 'LONG' : 'SHORT'} de {tradeAmount} USDT en {currentPair}.</p>
+          <h3 className="text-lg font-bold mb-4">{t('futuros.confirmOrder')}</h3>
+          <p className="mb-4 text-sm text-[#848E9C]">{t('futuros.confirmText').replace('{{type}}', pendingType === 'CALL' ? 'LONG' : 'SHORT').replace('{{amount}}', String(tradeAmount)).replace('{{pair}}', currentPair)}</p>
           <div className="flex gap-2">
-            <button onClick={() => setShowConfirm(false)} className="flex-1 py-2 bg-[#2B3139] rounded">Cancelar</button>
-            <button onClick={() => placeOrder(pendingType!)} className="flex-1 py-2 bg-[#F0B90B] text-black font-bold rounded">Confirmar</button>
+            <button onClick={() => setShowConfirm(false)} className="flex-1 py-2 bg-[#2B3139] rounded">{t('common.cancel')}</button>
+            <button onClick={() => placeOrder(pendingType!)} className="flex-1 py-2 bg-[#F0B90B] text-black font-bold rounded">{t('common.confirm')}</button>
           </div>
         </div>
       </div>}
