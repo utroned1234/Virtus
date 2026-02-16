@@ -47,6 +47,24 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    // Verificar KYC aprobado antes de permitir retiro
+    const userKyc = await prisma.user.findUnique({
+      where: { id: authResult.user.userId },
+      select: { kyc_status: true } as any,
+    })
+    const kycStatus = (userKyc as any)?.kyc_status || 'NOT_SUBMITTED'
+    if (kycStatus !== 'APPROVED') {
+      const messages: Record<string, string> = {
+        NOT_SUBMITTED: 'Debes verificar tu identidad antes de solicitar retiros. Ve a Verificación KYC.',
+        PENDING: 'Tu verificación de identidad está en revisión. Espera la aprobación.',
+        REJECTED: 'Tu verificación fue rechazada. Por favor vuelve a enviar tus documentos.',
+      }
+      return NextResponse.json(
+        { error: messages[kycStatus] || 'Debes verificar tu identidad', kyc_required: true },
+        { status: 403 }
+      )
+    }
+
     const { amount_bs, bank_name, qr_image_url, payout_method, phone_number } = await req.json()
 
     // Validar monto: cualquier valor >= 1 y con máximo 2 decimales

@@ -26,6 +26,7 @@ export default function WithdrawalsPage() {
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [kycStatus, setKycStatus] = useState<string>('NOT_SUBMITTED')
   const { showToast } = useToast()
 
   useEffect(() => {
@@ -53,6 +54,15 @@ export default function WithdrawalsPage() {
         setBalance(data.balance)
         setTotalInversion(data.totalInversion || 0)
         setWithdrawals(data.withdrawals)
+      }
+
+      // Obtener estado KYC
+      const kycRes = await fetch('/api/kyc', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (kycRes.ok) {
+        const kycData = await kycRes.json()
+        setKycStatus(kycData.kyc_status || 'NOT_SUBMITTED')
       }
     } catch (error) {
       console.error('Error fetching data:', error)
@@ -324,8 +334,46 @@ export default function WithdrawalsPage() {
           </div>
         </div>
 
+        {/* Banner KYC */}
+        {kycStatus !== 'APPROVED' && (
+          <div
+            className="rounded-xl p-4 space-y-3"
+            style={{
+              background: kycStatus === 'PENDING' ? 'rgba(251,191,36,0.08)' : 'rgba(248,113,113,0.08)',
+              border: `1px solid ${kycStatus === 'PENDING' ? 'rgba(251,191,36,0.3)' : 'rgba(248,113,113,0.3)'}`,
+            }}
+          >
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5 flex-shrink-0" style={{ color: kycStatus === 'PENDING' ? '#FBBF24' : '#F87171' }} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+              </svg>
+              <p className="text-xs font-bold" style={{ color: kycStatus === 'PENDING' ? '#FBBF24' : '#F87171' }}>
+                {kycStatus === 'PENDING' ? 'Verificación en revisión' : kycStatus === 'REJECTED' ? 'Verificación rechazada' : 'Verificación requerida'}
+              </p>
+            </div>
+            <p className="text-[10px] text-white/60">
+              {kycStatus === 'PENDING'
+                ? 'Tu identidad está siendo revisada. Podrás retirar una vez aprobada.'
+                : kycStatus === 'REJECTED'
+                ? 'Tu verificación fue rechazada. Vuelve a enviar tus documentos.'
+                : 'Para solicitar retiros debes verificar tu identidad primero.'}
+            </p>
+            <button
+              onClick={() => router.push('/kyc')}
+              className="w-full py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all"
+              style={{
+                background: kycStatus === 'PENDING' ? 'rgba(251,191,36,0.15)' : 'rgba(52,211,153,0.15)',
+                border: `1px solid ${kycStatus === 'PENDING' ? 'rgba(251,191,36,0.4)' : 'rgba(52,211,153,0.4)'}`,
+                color: kycStatus === 'PENDING' ? '#FBBF24' : '#34D399',
+              }}
+            >
+              {kycStatus === 'PENDING' ? 'Ver estado de verificación' : 'Verificar identidad ahora'}
+            </button>
+          </div>
+        )}
+
         {/* Monto libre */}
-        <div className="glass-card !p-4">
+        <div className="glass-card !p-4" style={{ opacity: kycStatus !== 'APPROVED' ? 0.4 : 1, pointerEvents: kycStatus !== 'APPROVED' ? 'none' : 'auto' }}>
           <p className="text-[10px] font-bold text-[#34D399] text-center mb-3 uppercase tracking-widest">
             Ingresa el Monto
           </p>
