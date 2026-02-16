@@ -31,13 +31,24 @@ export default function BottomNav() {
       )
     },
     {
-      href: '/futuros',
+      href: '/trading',
       label: 'Trading',
       icon: (active: boolean) => (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
           <rect x="15.5" y="8" width="5" height="13" rx="1.5" fill={active ? 'currentColor' : 'none'} strokeWidth={active ? 0 : 1.8} />
           <rect x="9.5" y="3" width="5" height="18" rx="1.5" fill={active ? 'currentColor' : 'none'} strokeWidth={active ? 0 : 1.8} />
           <rect x="3.5" y="12" width="5" height="9" rx="1.5" fill={active ? 'currentColor' : 'none'} strokeWidth={active ? 0 : 1.8} />
+        </svg>
+      )
+    },
+    {
+      href: '/futuros',
+      label: 'Futuros',
+      icon: (active: boolean) => (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="9" strokeWidth={active ? 0 : 1.8} fill={active ? 'currentColor' : 'none'} />
+          {active && <circle cx="12" cy="12" r="9" fill="#0D1F1C" />}
+          <path d="M12 7v5l3 3" strokeWidth="1.8" stroke={active ? 'currentColor' : 'currentColor'} />
         </svg>
       )
     },
