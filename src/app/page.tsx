@@ -1,6 +1,11 @@
+'use client'
+
 import Link from 'next/link'
+import { useLanguage } from '@/context/LanguageContext'
 
 export default function WelcomePage() {
+  const { t } = useLanguage()
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden">
       {/* Main content */}
@@ -27,7 +32,7 @@ export default function WelcomePage() {
             <div className="mt-3 flex items-center justify-center gap-2">
               <div className="h-px w-8 bg-gradient-to-r from-transparent to-[#34D399]/50" />
               <p className="text-[#34D399]/70 text-xs font-medium uppercase tracking-[0.25em]">
-                Tu futuro financiero
+                {t('welcome.tagline')}
               </p>
               <div className="h-px w-8 bg-gradient-to-l from-transparent to-[#34D399]/50" />
             </div>
@@ -44,7 +49,7 @@ export default function WelcomePage() {
                 boxShadow: '0 4px 20px rgba(16, 185, 129, 0.35)',
               }}
             >
-              Iniciar Sesion
+              {t('welcome.login')}
             </button>
           </Link>
 
@@ -52,7 +57,7 @@ export default function WelcomePage() {
             <button
               className="w-full py-4 px-6 rounded-2xl font-bold text-base transition-all active:scale-95 hover:-translate-y-0.5 border-2 border-[#34D399]/40 text-[#34D399] hover:bg-[#34D399]/10"
             >
-              Crear Cuenta
+              {t('welcome.register')}
             </button>
           </Link>
         </div>
@@ -68,7 +73,7 @@ export default function WelcomePage() {
       {/* Footer */}
       <div className="absolute bottom-4 left-0 right-0 text-center">
         <p className="text-[10px] text-white/20 px-4">
-          © 2026 Virtus. Todos los derechos reservados. El contenido y la marca están protegidos por la legislación vigente.
+          {t('common.copyright')}
         </p>
       </div>
 

@@ -4,18 +4,20 @@ import { useState } from 'react'
 import BottomNav from '@/components/ui/BottomNav'
 import MarketList, { MarketCategory } from '@/components/market/MarketList'
 import { Search, Menu, X, ChevronRight } from 'lucide-react'
+import { useLanguage } from '@/context/LanguageContext'
 
 export default function MercadoPage() {
   const [category, setCategory] = useState<MarketCategory>('crypto')
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const { t } = useLanguage()
 
   const categories: { id: MarketCategory; label: string }[] = [
-    { id: 'crypto', label: 'Criptos' },
-    { id: 'futures', label: 'Futuros' },
-    { id: 'forex', label: 'Divisas' },
-    { id: 'indices', label: 'Índices' },
-    { id: 'stocks', label: 'Acciones' },
-    { id: 'commodities', label: 'Materias Primas' },
+    { id: 'crypto', label: t('mercado.crypto') },
+    { id: 'futures', label: t('mercado.futures') },
+    { id: 'forex', label: t('mercado.forex') },
+    { id: 'indices', label: t('mercado.indices') },
+    { id: 'stocks', label: t('mercado.stocks') },
+    { id: 'commodities', label: t('mercado.commodities') },
   ]
 
   const handleCategorySelect = (id: MarketCategory) => {
@@ -60,7 +62,7 @@ export default function MercadoPage() {
           {/* Drawer Content */}
           <div className="relative w-[280px] h-full bg-[#0D1F1C] border-r border-white/5 shadow-2xl flex flex-col animate-slide-in-left">
             <div className="p-4 border-b border-white/5 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white">Mercados</h2>
+              <h2 className="text-lg font-bold text-white">{t('mercado.markets')}</h2>
               <button
                 onClick={() => setIsMenuOpen(false)}
                 className="p-2 text-white/50 hover:text-white transition-colors"

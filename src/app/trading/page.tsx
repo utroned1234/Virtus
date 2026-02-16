@@ -12,6 +12,7 @@ import {
   CheckCircle2
 } from 'lucide-react'
 import BottomNav from '../../components/ui/BottomNav'
+import { useLanguage } from '@/context/LanguageContext'
 
 // --- Types ---
 interface TradeOrder {
@@ -59,6 +60,7 @@ const TIMEFRAMES = [
 const PAYOUT_RATE = 57.06
 
 export default function FuturosPage() {
+  const { t } = useLanguage()
   const chartRef = useRef<HTMLDivElement>(null)
   const chartInstance = useRef<echarts.ECharts | null>(null)
 
@@ -822,7 +824,7 @@ export default function FuturosPage() {
 
   const placeOrder = async (type: 'CALL' | 'PUT') => {
     if (balance < tradeAmount) {
-      alert('Saldo insuficiente')
+      alert(t('trading.insufficientBalance'))
       return
     }
 
@@ -877,11 +879,11 @@ export default function FuturosPage() {
         setShowConfirm(false)
       } else {
         const error = await res.json()
-        alert(error.error || 'Error al abrir posición')
+        alert(error.error || t('trading.errorOpening'))
       }
     } catch (err) {
       console.error('Error placing order:', err)
-      alert('Error de conexión')
+      alert(t('trading.errorConnection'))
     }
   }
 
@@ -894,7 +896,7 @@ export default function FuturosPage() {
         .split('; ')
         .find(row => row.startsWith('auth_token='))
         ?.split('=')[1]
-      if (!token) { setSignalError('No autenticado'); return }
+      if (!token) { setSignalError(t('trading.notAuthenticated')); return }
 
       const res = await fetch('/api/signals/execute', {
         method: 'POST',
@@ -934,10 +936,10 @@ export default function FuturosPage() {
         const balRes = await fetch('/api/user/balance', { headers: { Authorization: `Bearer ${token}` } })
         if (balRes.ok) { const bd = await balRes.json(); setBalance(bd.balance) }
       } else {
-        setSignalError(data.error || 'Error al ejecutar señal')
+        setSignalError(data.error || t('trading.signalError'))
       }
     } catch {
-      setSignalError('Error de conexión')
+      setSignalError(t('trading.errorConnection'))
     } finally {
       setSignalExecuting(false)
     }
@@ -972,7 +974,7 @@ export default function FuturosPage() {
             <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-[#34D399]/5 to-transparent pointer-events-none" />
 
             <div className="p-5 border-b border-white/5 flex justify-between items-center relative z-10">
-              <h3 className="font-bold text-lg tracking-wide text-white">Mercados</h3>
+              <h3 className="font-bold text-lg tracking-wide text-white">{t('trading.markets')}</h3>
               <div onClick={() => setShowSidebar(false)} className="p-1 rounded-full hover:bg-white/10 text-white/50 cursor-pointer transition">
                 <X size={20} />
               </div>
@@ -1003,14 +1005,14 @@ export default function FuturosPage() {
         {/* Info Bar */}
         <div className="flex justify-between items-end mb-4 px-1">
           <div className="flex flex-col">
-            <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-0.5">Precio de Mercado</span>
+            <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-0.5">{t('trading.marketPrice')}</span>
             <div className="text-3xl font-bold font-[Orbitron] tracking-tight text-white flex items-center gap-2 drop-shadow-md">
               {currentPrice.toFixed(2)}
               <div className="w-1.5 h-1.5 rounded-full bg-[#34D399] animate-pulse"></div>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] uppercase font-bold text-[#34D399] bg-[#34D399]/10 border border-[#34D399]/20 px-2 py-0.5 rounded">En vivo</span>
+            <span className="text-[10px] uppercase font-bold text-[#34D399] bg-[#34D399]/10 border border-[#34D399]/20 px-2 py-0.5 rounded">{t('trading.live')}</span>
           </div>
         </div>
 
@@ -1041,9 +1043,9 @@ export default function FuturosPage() {
 
         {/* Tabs - Segmented Control */}
         <div className="bg-[#131B26] p-1 rounded-xl flex mb-6 border border-white/5 shadow-inner">
-          <button className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'active' ? 'bg-[#34D399] text-[#060B10] shadow-md' : 'text-gray-500 hover:text-white'}`} onClick={() => setActiveTab('active')}>Activas</button>
-          <button className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'history' ? 'bg-[#34D399] text-[#060B10] shadow-md' : 'text-gray-500 hover:text-white'}`} onClick={() => setActiveTab('history')}>Historial</button>
-          <button className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'code' ? 'bg-[#34D399] text-[#060B10] shadow-md' : 'text-gray-500 hover:text-white'}`} onClick={() => setActiveTab('code')}>Señales</button>
+          <button className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'active' ? 'bg-[#34D399] text-[#060B10] shadow-md' : 'text-gray-500 hover:text-white'}`} onClick={() => setActiveTab('active')}>{t('trading.active')}</button>
+          <button className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'history' ? 'bg-[#34D399] text-[#060B10] shadow-md' : 'text-gray-500 hover:text-white'}`} onClick={() => setActiveTab('history')}>{t('trading.history')}</button>
+          <button className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'code' ? 'bg-[#34D399] text-[#060B10] shadow-md' : 'text-gray-500 hover:text-white'}`} onClick={() => setActiveTab('code')}>{t('trading.signals')}</button>
         </div>
 
         {/* Tab Content */}
@@ -1054,8 +1056,8 @@ export default function FuturosPage() {
                 <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-4">
                   <Activity size={32} className="text-gray-500" />
                 </div>
-                <p className="text-sm font-medium text-gray-400">Sin órdenes activas</p>
-                <p className="text-xs text-gray-600 mt-1">Abre una posición para verla aquí</p>
+                <p className="text-sm font-medium text-gray-400">{t('trading.noActiveOrders')}</p>
+                <p className="text-xs text-gray-600 mt-1">{t('trading.openPosition')}</p>
               </div> :
               <div className="space-y-3">
                 {activeOrders.map(order => {
@@ -1071,7 +1073,7 @@ export default function FuturosPage() {
                         <div className="flex items-center gap-3">
                           <div className={`flex items-center gap-1.5 text-xs font-black tracking-wider ${order.type === 'CALL' ? 'text-[#34D399]' : 'text-[#FF5A5A]'}`}>
                             {order.type === 'CALL' ? <ArrowUp size={14} strokeWidth={2.5} /> : <ArrowDown size={14} strokeWidth={2.5} />}
-                            <span>{order.type === 'CALL' ? 'ALZA' : 'BAJA'}</span>
+                            <span>{order.type === 'CALL' ? t('trading.rise') : t('trading.fall')}</span>
                           </div>
                           <div className="text-[9px] text-gray-500 font-bold bg-white/5 px-1.5 py-0.5 rounded">x{order.leverage}</div>
                         </div>
@@ -1084,7 +1086,7 @@ export default function FuturosPage() {
                       <div className="flex justify-between items-center pl-3 mt-2 pt-2 border-t border-white/5">
                         <div className="flex gap-4">
                           <div>
-                            <div className="text-[8px] text-gray-600 uppercase font-bold">Inversión</div>
+                            <div className="text-[8px] text-gray-600 uppercase font-bold">{t('trading.investment')}</div>
                             <div className="text-xs font-bold text-white">${order.amount.toFixed(2)}</div>
                           </div>
                         </div>
@@ -1093,7 +1095,7 @@ export default function FuturosPage() {
                           onClick={() => closePosition(order.id)}
                           className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-[9px] font-bold text-gray-400 hover:text-white transition-all uppercase tracking-wider"
                         >
-                          Cerrar
+                          {t('trading.close')}
                         </button>
                       </div>
                     </div>
@@ -1106,7 +1108,7 @@ export default function FuturosPage() {
             <div className="space-y-2">
               {historyOrders.length === 0 ? (
                 <div className="text-center py-12 opacity-50">
-                  <p className="text-xs text-gray-500">Sin historial de operaciones</p>
+                  <p className="text-xs text-gray-500">{t('trading.noHistory')}</p>
                 </div>
               ) : (
                 historyOrders.map(order => (
@@ -1116,7 +1118,7 @@ export default function FuturosPage() {
                         {/* Pair name removed per request */}
                         <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${order.type === 'CALL' ? 'bg-[#34D399]/10 text-[#34D399]' : 'bg-[#FF5A5A]/10 text-[#FF5A5A]'
                           }`}>
-                          {order.type === 'CALL' ? 'ALZA' : 'BAJA'}
+                          {order.type === 'CALL' ? t('trading.rise') : t('trading.fall')}
                         </span>
                       </div>
                       <span className="text-[10px] text-gray-500">{order.startTime}</span>
@@ -1127,7 +1129,7 @@ export default function FuturosPage() {
                         {order.pnl >= 0 ? '+' : ''}${order.pnl.toFixed(2)}
                       </p>
                       <p className="text-[10px] text-gray-600">
-                        {order.pnl >= 0 ? 'BENEFICIO' : 'PÉRDIDA'}
+                        {order.pnl >= 0 ? t('trading.profit') : t('trading.loss')}
                       </p>
                     </div>
                   </div>
@@ -1142,7 +1144,7 @@ export default function FuturosPage() {
               {activeSignalInfo ? (
                 <div className="bg-[#131B26] border border-[#34D399]/20 rounded-xl p-4 text-center shadow-lg relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-1 h-full bg-[#34D399]"></div>
-                  <p className="text-[9px] uppercase text-[#34D399] font-bold tracking-[0.2em] mb-2">CÓDIGO ACTIVO</p>
+                  <p className="text-[9px] uppercase text-[#34D399] font-bold tracking-[0.2em] mb-2">{t('trading.activeCode')}</p>
 
                   {/* Barra de progreso 5 minutos - Thinner */}
                   <div className="w-full bg-black/40 rounded-full h-1 mb-3 overflow-hidden">
@@ -1163,7 +1165,7 @@ export default function FuturosPage() {
                       }}
                       className="px-2 py-1 rounded text-[10px] font-bold bg-[#34D399]/10 text-[#34D399] border border-[#34D399]/20 hover:bg-[#34D399]/20 transition-colors"
                     >
-                      COPIAR
+                      {t('trading.copy')}
                     </button>
                   </div>
 
@@ -1172,13 +1174,13 @@ export default function FuturosPage() {
                       ? 'text-[#34D399] bg-[#34D399]/5 border-[#34D399]/20'
                       : 'text-[#FF5A5A] bg-[#FF5A5A]/5 border-[#FF5A5A]/20'
                       }`}>
-                      {activeSignalInfo.direction === 'CALL' ? 'COMPRA (ALZA)' : 'VENTA (BAJA)'}
+                      {activeSignalInfo.direction === 'CALL' ? t('trading.buyRise') : t('trading.sellFall')}
                     </span>
                   </div>
                 </div>
               ) : (
                 <div className="bg-[#131B26] rounded-xl p-6 text-center border border-white/5 border-dashed">
-                  <p className="text-xs text-gray-500 font-medium">Esperando señal...</p>
+                  <p className="text-xs text-gray-500 font-medium">{t('trading.waitingSignal')}</p>
                 </div>
               )}
 
@@ -1189,14 +1191,14 @@ export default function FuturosPage() {
                     <CheckCircle2 size={16} className="text-green-400" />
                   </div>
                   <div className="text-left">
-                    <p className="text-xs font-bold text-green-400">¡Señal Ejecutada!</p>
-                    <p className="text-[10px] text-gray-500">Operación en curso o finalizada.</p>
+                    <p className="text-xs font-bold text-green-400">{t('trading.signalExecuted')}</p>
+                    <p className="text-[10px] text-gray-500">{t('trading.operationRunning')}</p>
                   </div>
                 </div>
               ) : (
                 <div className="bg-[#131B26] rounded-xl p-4 space-y-3 border border-white/5 shadow-lg">
                   <div className="text-center">
-                    <label className="text-gray-500 text-[9px] font-bold uppercase tracking-widest block mb-1">Ingresar Código</label>
+                    <label className="text-gray-500 text-[9px] font-bold uppercase tracking-widest block mb-1">{t('trading.enterCode')}</label>
                   </div>
                   <input
                     type="text"
@@ -1214,7 +1216,7 @@ export default function FuturosPage() {
                     disabled={signalExecuting || !signalCode.trim()}
                     className="w-full bg-[#34D399] hover:bg-[#2EB380] py-3 rounded-lg font-bold text-[#060B10] text-xs uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(52,211,153,0.1)] hover:shadow-[0_0_20px_rgba(52,211,153,0.3)]"
                   >
-                    {signalExecuting ? '...' : 'ACTIVAR SEÑAL'}
+                    {signalExecuting ? '...' : t('trading.activateSignal')}
                   </button>
                 </div>
               )}
@@ -1232,7 +1234,7 @@ export default function FuturosPage() {
             className="flex-1 bg-gradient-to-br from-[#34D399] to-[#059669] rounded-xl flex flex-col items-center justify-center py-2.5 text-white shadow-lg shadow-[#34D399]/20 hover:shadow-[#34D399]/40 hover:-translate-y-0.5 transition-all active:scale-95 group"
           >
             <span className="font-extrabold text-sm flex items-center gap-1 group-hover:gap-2 transition-all">
-              <ArrowUp size={18} strokeWidth={3} /> SUBIDA
+              <ArrowUp size={18} strokeWidth={3} /> {t('trading.up')}
             </span>
             <span className="text-[10px] font-medium bg-black/20 px-2 py-0.5 rounded-full mt-0.5">{PAYOUT_RATE}%</span>
           </button>
@@ -1241,7 +1243,7 @@ export default function FuturosPage() {
             className="flex-1 bg-gradient-to-br from-[#FF5A5A] to-[#DC2626] rounded-xl flex flex-col items-center justify-center py-2.5 text-white shadow-lg shadow-[#FF5A5A]/20 hover:shadow-[#FF5A5A]/40 hover:-translate-y-0.5 transition-all active:scale-95 group"
           >
             <span className="font-extrabold text-sm flex items-center gap-1 group-hover:gap-2 transition-all">
-              <ArrowDown size={18} strokeWidth={3} /> BAJADA
+              <ArrowDown size={18} strokeWidth={3} /> {t('trading.down')}
             </span>
             <span className="text-[10px] font-medium bg-black/20 px-2 py-0.5 rounded-full mt-0.5">{PAYOUT_RATE}%</span>
           </button>
@@ -1261,7 +1263,7 @@ export default function FuturosPage() {
               <h3 className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-2">{currentPair}</h3>
               <div className={`flex items-center justify-center gap-3 text-3xl font-black ${pendingType === 'CALL' ? 'text-[#34D399]' : 'text-[#FF5A5A]'}`}>
                 {pendingType === 'CALL' ? <ArrowUp size={32} strokeWidth={3} /> : <ArrowDown size={32} strokeWidth={3} />}
-                <span className="tracking-tight">{pendingType === 'CALL' ? 'ALZA' : 'BAJA'}</span>
+                <span className="tracking-tight">{pendingType === 'CALL' ? t('trading.rise') : t('trading.fall')}</span>
               </div>
             </div>
 
@@ -1269,7 +1271,7 @@ export default function FuturosPage() {
 
               {/* Leverage Input */}
               <div className="space-y-2">
-                <label className="text-gray-400 text-xs font-bold uppercase tracking-wider block text-center">Apalancamiento</label>
+                <label className="text-gray-400 text-xs font-bold uppercase tracking-wider block text-center">{t('trading.leverage')}</label>
                 <div className="relative">
                   <input
                     type="number"
@@ -1285,7 +1287,7 @@ export default function FuturosPage() {
 
               {/* Amount Input */}
               <div className="space-y-2">
-                <label className="text-gray-400 text-xs font-bold uppercase tracking-wider block text-center">Inversión</label>
+                <label className="text-gray-400 text-xs font-bold uppercase tracking-wider block text-center">{t('trading.investment')}</label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg font-bold pointer-events-none">$</span>
                   <input
@@ -1302,7 +1304,7 @@ export default function FuturosPage() {
               {/* TP / SL Manual Inputs - Subtle */}
               <div className="grid grid-cols-2 gap-3 pt-2">
                 <div className="space-y-1">
-                  <span className="text-[10px] text-gray-600 font-bold uppercase block text-center">TP (Opcional)</span>
+                  <span className="text-[10px] text-gray-600 font-bold uppercase block text-center">{t('trading.tpOptional')}</span>
                   <input
                     type="number"
                     value={tpValue}
@@ -1312,7 +1314,7 @@ export default function FuturosPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <span className="text-[10px] text-gray-600 font-bold uppercase block text-center">SL (Opcional)</span>
+                  <span className="text-[10px] text-gray-600 font-bold uppercase block text-center">{t('trading.slOptional')}</span>
                   <input
                     type="number"
                     value={slValue}
@@ -1329,13 +1331,13 @@ export default function FuturosPage() {
                   onClick={() => placeOrder(pendingType!)}
                   className={`w-full py-4 rounded-xl font-bold text-[#0A1119] text-sm uppercase tracking-widest shadow-lg transform transition active:scale-[0.98] hover:brightness-110 ${pendingType === 'CALL' ? 'bg-[#34D399] shadow-[#34D399]/20' : 'bg-[#FF5A5A] shadow-[#FF5A5A]/20'}`}
                 >
-                  CONFIRMAR
+                  {t('trading.confirm')}
                 </button>
                 <button
                   onClick={() => setShowConfirm(false)}
                   className="w-full py-3 rounded-xl text-xs font-bold text-gray-500 hover:text-white hover:bg-white/5 transition uppercase tracking-wider"
                 >
-                  Cancelar
+                  {t('common.cancel')}
                 </button>
               </div>
 
@@ -1353,15 +1355,15 @@ export default function FuturosPage() {
               <Activity size={40} className="text-white" />
             </div>
 
-            <h3 className="text-xl font-black text-white mb-6">OPERACIÓN ABIERTA</h3>
+            <h3 className="text-xl font-black text-white mb-6">{t('trading.operationOpen')}</h3>
 
             <div className="bg-[#131B26] rounded-2xl p-4 space-y-3 text-left mb-6 border border-white/5">
               <div className="flex justify-between text-xs">
-                <span className="text-gray-500">Capital anterior</span>
+                <span className="text-gray-500">{t('trading.previousCapital')}</span>
                 <span className="text-white font-bold font-[Orbitron]">${signalResult.capital_before.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-gray-500">Operación (1%)</span>
+                <span className="text-gray-500">{t('trading.operation')}</span>
                 <span className="text-[#FFD700] font-bold font-[Orbitron]">${signalResult.gain_total.toFixed(2)}</span>
               </div>
             </div>
@@ -1370,7 +1372,7 @@ export default function FuturosPage() {
               onClick={() => setSignalResult(null)}
               className="w-full py-3.5 rounded-xl bg-[#FFD700] text-[#0A1119] font-bold uppercase tracking-wider hover:scale-[1.02] transition-transform shadow-lg"
             >
-              Ver Operación
+              {t('trading.viewOperation')}
             </button>
           </div>
         </div>

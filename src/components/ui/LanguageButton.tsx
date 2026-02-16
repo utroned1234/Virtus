@@ -5,21 +5,8 @@ import { usePathname } from 'next/navigation'
 import { useLanguage } from '@/context/LanguageContext'
 
 const LANGUAGES = [
-  { code: 'es', flagCode: 'es', label: 'Español' },
   { code: 'en', flagCode: 'us', label: 'English' },
-  { code: 'pt', flagCode: 'br', label: 'Português' },
-  { code: 'fr', flagCode: 'fr', label: 'Français' },
-  { code: 'de', flagCode: 'de', label: 'Deutsch' },
-  { code: 'it', flagCode: 'it', label: 'Italiano' },
-  { code: 'ru', flagCode: 'ru', label: 'Русский' },
-  { code: 'zh', flagCode: 'cn', label: '中文' },
-  { code: 'ar', flagCode: 'sa', label: 'العربية' },
-  { code: 'hi', flagCode: 'in', label: 'हिन्दी' },
-  { code: 'ja', flagCode: 'jp', label: '日本語' },
-  { code: 'tr', flagCode: 'tr', label: 'Türkçe' },
-  { code: 'ko', flagCode: 'kr', label: '한국어' },
-  { code: 'nl', flagCode: 'nl', label: 'Nederlands' },
-  { code: 'pl', flagCode: 'pl', label: 'Polski' },
+  { code: 'es', flagCode: 'es', label: 'Español' },
 ]
 
 const getFlagUrl = (flagCode: string) => `https://flagcdn.com/w20/${flagCode}.png`
@@ -45,7 +32,7 @@ export default function LanguageButton() {
   }, [])
 
   const selectLanguage = (code: string) => {
-    setLanguage(code as any)
+    setLanguage(code as 'es' | 'en')
     setOpen(false)
   }
 
@@ -58,7 +45,7 @@ export default function LanguageButton() {
       <button
         onClick={() => setOpen(!open)}
         className="w-10 h-10 flex items-center justify-center rounded-full bg-white border-2 border-[#00838F] hover:border-[#34D399] transition-all duration-200 overflow-hidden p-1"
-        title="Cambiar idioma"
+        title="Change language / Cambiar idioma"
       >
         <img
           src={getFlagUrl(currentLang.flagCode)}
@@ -68,28 +55,27 @@ export default function LanguageButton() {
       </button>
 
       {open && (
-        <div className="absolute top-12 left-0 z-[200] w-44 rounded-xl overflow-hidden shadow-2xl border border-white/10"
+        <div
+          className="absolute top-12 left-0 z-[200] w-36 rounded-xl overflow-hidden shadow-2xl border border-white/10"
           style={{ background: '#0D1F1C' }}
         >
-          <div className="max-h-72 overflow-y-auto">
-            {LANGUAGES.map((lang) => (
-              <button
-                key={lang.code}
-                onClick={() => selectLanguage(lang.code)}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors hover:bg-white/10 ${
-                  language === lang.code ? 'bg-[#34D399]/15 text-[#34D399]' : 'text-white'
-                }`}
-              >
-                <img
-                  src={getFlagUrl(lang.flagCode)}
-                  alt={lang.label}
-                  className="w-5 h-3.5 object-cover rounded-sm"
-                />
-                <span className="font-medium">{lang.label}</span>
-                {language === lang.code && <span className="ml-auto text-[#34D399] text-xs">✓</span>}
-              </button>
-            ))}
-          </div>
+          {LANGUAGES.map((lang) => (
+            <button
+              key={lang.code}
+              onClick={() => selectLanguage(lang.code)}
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm transition-colors hover:bg-white/10 ${
+                language === lang.code ? 'bg-[#34D399]/15 text-[#34D399]' : 'text-white'
+              }`}
+            >
+              <img
+                src={getFlagUrl(lang.flagCode)}
+                alt={lang.label}
+                className="w-5 h-3.5 object-cover rounded-sm flex-shrink-0"
+              />
+              <span className="font-medium">{lang.label}</span>
+              {language === lang.code && <span className="ml-auto text-[#34D399] text-xs">✓</span>}
+            </button>
+          ))}
         </div>
       )}
     </div>

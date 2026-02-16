@@ -22,7 +22,7 @@ export default function BottomNav() {
     },
     {
       href: '/mercado',
-      label: 'Mercado',
+      label: t('nav.market'),
       icon: (active: boolean) => (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 0 : 1.8} strokeLinecap="round" strokeLinejoin="round">
           <path d="M3 3v18h18" />
@@ -32,7 +32,7 @@ export default function BottomNav() {
     },
     {
       href: '/trading',
-      label: 'Trading',
+      label: t('nav.trading'),
       icon: (active: boolean) => (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
           <rect x="15.5" y="8" width="5" height="13" rx="1.5" fill={active ? 'currentColor' : 'none'} strokeWidth={active ? 0 : 1.8} />
@@ -43,7 +43,7 @@ export default function BottomNav() {
     },
     {
       href: '/futuros',
-      label: 'Futuros',
+      label: t('nav.futures'),
       icon: (active: boolean) => (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="9" strokeWidth={active ? 0 : 1.8} fill={active ? 'currentColor' : 'none'} />

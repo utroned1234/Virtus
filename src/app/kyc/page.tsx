@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import BottomNav from '@/components/ui/BottomNav'
 import { useToast } from '@/components/ui/Toast'
+import { useLanguage } from '@/context/LanguageContext'
 
 type KycStatus = 'NOT_SUBMITTED' | 'PENDING' | 'APPROVED' | 'REJECTED'
 
@@ -19,6 +20,7 @@ interface KycData {
 export default function KycPage() {
   const router = useRouter()
   const { showToast } = useToast()
+  const { t } = useLanguage()
   const [kyc, setKyc] = useState<KycData | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -76,7 +78,7 @@ export default function KycPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selfieFile || !frontFile || !backFile) {
-      showToast('Debes subir las 3 fotos', 'error')
+      showToast(t('kyc.sendAll3'), 'error')
       return
     }
     const token = getToken()
@@ -118,8 +120,8 @@ export default function KycPage() {
 
         {/* Header */}
         <div className="text-center pt-2">
-          <h1 className="text-xl font-bold text-[#34D399]">Verificación de Identidad</h1>
-          <p className="text-white/50 text-[10px] uppercase tracking-wider mt-1">KYC — Conoce a tu cliente</p>
+          <h1 className="text-xl font-bold text-[#34D399]">{t('kyc.title')}</h1>
+          <p className="text-white/50 text-[10px] uppercase tracking-wider mt-1">{t('kyc.subtitle')}</p>
         </div>
 
         {/* Estado actual */}
@@ -130,8 +132,8 @@ export default function KycPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <p className="text-[#4ADE80] font-bold text-lg">Identidad Verificada</p>
-            <p className="text-white/50 text-xs">Tu cuenta está verificada y puedes solicitar retiros</p>
+            <p className="text-[#4ADE80] font-bold text-lg">{t('kyc.approvedTitle')}</p>
+            <p className="text-white/50 text-xs">{t('kyc.approvedDesc')}</p>
           </div>
         )}
 
@@ -143,8 +145,8 @@ export default function KycPage() {
                 <path strokeLinecap="round" d="M12 7v5l3 3" />
               </svg>
             </div>
-            <p className="text-[#FBBF24] font-bold">En Revisión</p>
-            <p className="text-white/50 text-xs">El equipo revisará tus documentos pronto</p>
+            <p className="text-[#FBBF24] font-bold">{t('kyc.pendingTitle')}</p>
+            <p className="text-white/50 text-xs">{t('kyc.pendingDesc')}</p>
           </div>
         )}
 
@@ -154,12 +156,12 @@ export default function KycPage() {
               <svg className="w-5 h-5 text-[#F87171] flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
-              <p className="text-[#F87171] font-bold text-sm">Verificación Rechazada</p>
+              <p className="text-[#F87171] font-bold text-sm">{t('kyc.rejectedTitle')}</p>
             </div>
             {kyc?.kyc_rejection_reason && (
-              <p className="text-white/60 text-xs pl-7">Motivo: {kyc.kyc_rejection_reason}</p>
+              <p className="text-white/60 text-xs pl-7">{t('kyc.rejectedReason')}: {kyc.kyc_rejection_reason}</p>
             )}
-            <p className="text-white/40 text-[10px] pl-7">Puedes volver a enviar tus documentos</p>
+            <p className="text-white/40 text-[10px] pl-7">{t('kyc.canResubmit')}</p>
           </div>
         )}
 
@@ -167,12 +169,12 @@ export default function KycPage() {
         {(status === 'NOT_SUBMITTED' || status === 'REJECTED') && (
           <>
             <div className="glass-card !p-4 space-y-3">
-              <p className="text-[11px] font-bold text-white/70 uppercase tracking-wider">¿Qué necesitas subir?</p>
+              <p className="text-[11px] font-bold text-white/70 uppercase tracking-wider">{t('kyc.whatToUpload')}</p>
               <div className="space-y-2">
                 {[
-                  { num: '1', title: 'Selfie sosteniendo tu carnet', desc: 'Foto tuya con el carnet/cédula visible en tu mano', color: '#34D399' },
-                  { num: '2', title: 'Frente del carnet', desc: 'Foto clara del frente de tu CI/Cédula', color: '#818CF8' },
-                  { num: '3', title: 'Reverso del carnet', desc: 'Foto clara del reverso de tu CI/Cédula', color: '#FBBF24' },
+                  { num: '1', title: t('kyc.selfieTitle'), desc: t('kyc.selfieDesc'), color: '#34D399' },
+                  { num: '2', title: t('kyc.frontTitle'), desc: t('kyc.frontDesc'), color: '#818CF8' },
+                  { num: '3', title: t('kyc.backTitle'), desc: t('kyc.backDesc'), color: '#FBBF24' },
                 ].map(item => (
                   <div key={item.num} className="flex items-start gap-3">
                     <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-bold" style={{ background: `rgba(${item.color === '#34D399' ? '52,211,153' : item.color === '#818CF8' ? '129,140,248' : '251,191,36'},0.2)`, color: item.color }}>
@@ -191,27 +193,34 @@ export default function KycPage() {
             <form onSubmit={handleSubmit} className="space-y-3">
               {/* Selfie */}
               <PhotoUpload
-                label="Foto selfie sosteniendo tu carnet"
+                label={t('kyc.selfieTitle')}
                 color="#34D399"
                 preview={selfiePreview}
                 onChange={(e) => handleFile(e, setSelfieFile, setSelfiePreview)}
                 required
+                photoLoaded={t('kyc.photoLoaded')}
+                tapChange={t('kyc.tapChange')}
+                tapTake={t('kyc.tapTake')}
               />
-              {/* Frente */}
               <PhotoUpload
-                label="Frente del carnet"
+                label={t('kyc.frontTitle')}
                 color="#818CF8"
                 preview={frontPreview}
                 onChange={(e) => handleFile(e, setFrontFile, setFrontPreview)}
                 required
+                photoLoaded={t('kyc.photoLoaded')}
+                tapChange={t('kyc.tapChange')}
+                tapTake={t('kyc.tapTake')}
               />
-              {/* Reverso */}
               <PhotoUpload
-                label="Reverso del carnet"
+                label={t('kyc.backTitle')}
                 color="#FBBF24"
                 preview={backPreview}
                 onChange={(e) => handleFile(e, setBackFile, setBackPreview)}
                 required
+                photoLoaded={t('kyc.photoLoaded')}
+                tapChange={t('kyc.tapChange')}
+                tapTake={t('kyc.tapTake')}
               />
 
               <button
@@ -224,7 +233,7 @@ export default function KycPage() {
                   color: submitting ? 'rgba(52,211,153,0.4)' : '#34D399',
                 }}
               >
-                {submitting ? 'Enviando documentos...' : 'Enviar para Verificación'}
+                {submitting ? t('kyc.submitting') : t('kyc.submit')}
               </button>
             </form>
           </>
@@ -239,12 +248,15 @@ export default function KycPage() {
   )
 }
 
-function PhotoUpload({ label, color, preview, onChange, required }: {
+function PhotoUpload({ label, color, preview, onChange, required, photoLoaded, tapChange, tapTake }: {
   label: string
   color: string
   preview: string | null
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   required?: boolean
+  photoLoaded?: string
+  tapChange?: string
+  tapTake?: string
 }) {
   const rgb = color === '#34D399' ? '52,211,153' : color === '#818CF8' ? '129,140,248' : '251,191,36'
   return (
@@ -271,8 +283,8 @@ function PhotoUpload({ label, color, preview, onChange, required }: {
           <div className="flex items-center gap-3">
             <img src={preview} alt="preview" className="w-16 h-16 object-cover rounded-lg border border-white/10" />
             <div className="text-left">
-              <p className="text-[10px] font-medium" style={{ color }}>Foto cargada</p>
-              <p className="text-[9px] text-white/40">Toca para cambiar</p>
+              <p className="text-[10px] font-medium" style={{ color }}>{photoLoaded || 'Photo loaded'}</p>
+              <p className="text-[9px] text-white/40">{tapChange || 'Tap to change'}</p>
             </div>
           </div>
         ) : (
@@ -281,7 +293,7 @@ function PhotoUpload({ label, color, preview, onChange, required }: {
               <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
             </svg>
-            <p className="text-[10px] text-white/40">Toca para tomar foto</p>
+            <p className="text-[10px] text-white/40">{tapTake || 'Tap to take photo'}</p>
           </div>
         )}
       </div>

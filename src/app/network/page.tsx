@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Card from '@/components/ui/Card'
 import BottomNav from '@/components/ui/BottomNav'
 import ScreenshotProtection from '@/components/ui/ScreenshotProtection'
+import { useLanguage } from '@/context/LanguageContext'
 
 interface ReferralUser {
   id: string
@@ -17,6 +18,7 @@ interface ReferralUser {
 
 export default function NetworkPage() {
   const router = useRouter()
+  const { t } = useLanguage()
   const [network, setNetwork] = useState<ReferralUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -241,7 +243,7 @@ export default function NetworkPage() {
       <div className="min-h-screen flex items-center justify-center pb-20">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-gold border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-gold text-sm font-light animate-pulse">Cargando árbol de red...</p>
+          <p className="text-gold text-sm font-light animate-pulse">{t('network.loadingTree')}</p>
         </div>
       </div>
     )
@@ -256,7 +258,7 @@ export default function NetworkPage() {
           onClick={fetchNetwork}
           className="px-6 py-2 bg-dark-card border border-gold/30 text-gold rounded-full hover:bg-gold hover:text-dark-bg transition-all"
         >
-          Reintentar
+          {t('network.retry')}
         </button>
         <BottomNav />
       </div>
@@ -274,11 +276,11 @@ export default function NetworkPage() {
         <div className="fixed top-0 left-0 right-0 z-50 p-3 bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
           <div className="text-center pointer-events-auto mt-2">
             <h1 className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-gold via-white to-gold animate-shine">
-              Mi Red Global
+              {t('network.title')}
             </h1>
             <div className="mt-2 flex items-center justify-center gap-4 text-xs font-mono">
               <span className="bg-dark-card/80 px-3 py-1 rounded-full border border-gold/20 text-gold">
-                Total: {network ? countReferrals(network) : 0}
+                {t('network.total')}: {network ? countReferrals(network) : 0}
               </span>
               <div className="flex items-center gap-2">
                 <button onClick={() => setZoom(z => Math.max(20, z - 10))} className="w-6 h-6 bg-dark-card rounded flex items-center justify-center hover:bg-gold/20">-</button>
@@ -300,16 +302,16 @@ export default function NetworkPage() {
 
                 {(!network.referrals || network.referrals.length === 0) && (
                   <div className="mt-8 p-4 bg-white/5 border border-white/10 rounded text-gray-300 text-center max-w-xs backdrop-blur-sm">
-                    <p className="font-bold text-gold">⚠️ Red Unipersonal</p>
-                    <p className="text-sm mt-1">Aún no tienes referidos registrados debajo de ti.</p>
-                    <p className="text-xs mt-2 text-gray-400">Invita a usuarios para ver crecer tu árbol.</p>
+                    <p className="font-bold text-gold">⚠️ {t('network.noReferrals')}</p>
+                    <p className="text-sm mt-1">{t('network.noReferralsDesc')}</p>
+                    <p className="text-xs mt-2 text-gray-400">{t('network.inviteDesc')}</p>
                   </div>
                 )}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-64 text-white">
                 <div className="w-10 h-10 border-4 border-gold border-t-transparent rounded-full animate-spin mb-4"></div>
-                <p className="text-gold animate-pulse">Cargando red...</p>
+                <p className="text-gold animate-pulse">{t('network.loadingNetwork')}</p>
               </div>
             )}
           </div>
@@ -350,23 +352,23 @@ export default function NetworkPage() {
               <div className="grid grid-cols-2 gap-3 py-4 border-y border-white/5">
                 <div className="bg-dark-bg/50 p-3 rounded-lg text-center">
                   <p className="text-base font-bold text-white">{selectedUser.referrals?.length || 0}</p>
-                  <p className="text-[10px] text-text-secondary uppercase">Referidos</p>
+                  <p className="text-[10px] text-text-secondary uppercase">{t('network.referrals')}</p>
                 </div>
                 <div className="bg-dark-bg/50 p-3 rounded-lg text-center">
                   <p className="text-base font-bold text-gold">{selectedUser.vip_packages?.length || 0}</p>
-                  <p className="text-[10px] text-text-secondary uppercase">Paks Activos</p>
+                  <p className="text-[10px] text-text-secondary uppercase">{t('network.activePlans')}</p>
                 </div>
               </div>
 
               {/* VIP Packages List */}
               {selectedUser.vip_packages && selectedUser.vip_packages.length > 0 && (
                 <div className="space-y-2 max-h-[150px] overflow-y-auto">
-                  <p className="text-xs text-text-secondary font-bold uppercase tracking-wider sticky top-0 bg-dark-card/95 py-1">Paquetes JADE</p>
+                  <p className="text-xs text-text-secondary font-bold uppercase tracking-wider sticky top-0 bg-dark-card/95 py-1">{t('network.packages')}</p>
                   {selectedUser.vip_packages.map((pkg, idx) => (
                     <div key={idx} className="flex justify-between items-center p-2 rounded bg-white/5 border border-white/5">
                       <span className="text-sm text-white font-medium">{pkg.name}</span>
                       <span className={`text-[10px] px-2 py-0.5 rounded ${pkg.status === 'ACTIVE' ? 'bg-green-500/20 text-green-400' : 'bg-orange-500/20 text-orange-400'}`}>
-                        {pkg.status === 'ACTIVE' ? 'ACTIVO' : 'PENDIENTE'}
+                        {pkg.status === 'ACTIVE' ? t('vip.active') : t('common.pending')}
                       </span>
                     </div>
                   ))}
@@ -375,7 +377,7 @@ export default function NetworkPage() {
 
               {/* View Profile Action */}
               <button className="w-full py-3 bg-gradient-to-r from-azul-acero to-azul-armada rounded-xl text-white font-bold text-sm hover:brightness-110 transition-all shadow-lg active:scale-95">
-                Ver Perfil Completo
+                {t('network.viewProfile')}
               </button>
             </div>
           </Card>
@@ -383,7 +385,7 @@ export default function NetworkPage() {
       )}
 
       <p className="mt-8 text-[10px] text-white/20 text-center px-4">
-        © 2026 Virtus. Todos los derechos reservados. El contenido y la marca están protegidos por la legislación vigente.
+        {t('common.copyright')}
       </p>
 
       <BottomNav />

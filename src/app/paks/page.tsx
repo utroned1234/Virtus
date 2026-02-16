@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import BottomNav from '@/components/ui/BottomNav'
 import ScreenshotProtection from '@/components/ui/ScreenshotProtection'
+import { useLanguage } from '@/context/LanguageContext'
 
 interface VipPackage {
   id: number
@@ -26,6 +27,7 @@ interface PurchasedPackage {
 
 export default function PaksPage() {
   const router = useRouter()
+  const { t } = useLanguage()
   const [packages, setPackages] = useState<VipPackage[]>([])
   const [purchasedPackages, setPurchasedPackages] = useState<PurchasedPackage[]>([])
   const [loading, setLoading] = useState(true)
@@ -151,10 +153,10 @@ export default function PaksPage() {
 
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gold gold-glow uppercase tracking-wider mb-2">
-            Planes VIRTUS
+            {t('vip.title')}
           </h1>
           <p className="text-text-secondary text-sm uppercase tracking-widest">
-            Elige tu plan de inversión
+            {t('vip.subtitle')}
           </p>
         </div>
 
@@ -247,12 +249,12 @@ export default function PaksPage() {
                   {/* Monto de inversión */}
                   <div className="space-y-1 text-[10px] pt-2" style={{ borderTop: `1px solid rgba(${tier.colorRgb}, 0.2)` }}>
                     <div className="flex justify-between">
-                      <span className="text-text-secondary">Inversión:</span>
+                      <span className="text-text-secondary">{t('common.investment')}:</span>
                       <span className="font-bold text-white">${pkg.investment_bs.toLocaleString()} USD</span>
                     </div>
                     {isUpgrade && upgradeDiff > 0 && (
                       <div className="flex justify-between">
-                        <span className="text-text-secondary">Pagas:</span>
+                        <span className="text-text-secondary">{t('vip.pays')}:</span>
                         <span className="font-bold" style={{ color: tier.color }}>+${upgradeDiff.toLocaleString()} USD</span>
                       </div>
                     )}
@@ -262,18 +264,18 @@ export default function PaksPage() {
                   <div className="space-y-1 text-[9px]">
                     <div className="flex items-center gap-1">
                       <span style={{ color: tier.color }}>✓</span>
-                      <span className="text-text-secondary">Señales</span>
+                      <span className="text-text-secondary">{t('vip.signals')}</span>
                     </div>
                     {pkg.participates_in_referral_bonus && (
                       <div className="flex items-center gap-1">
                         <span style={{ color: tier.color }}>✓</span>
-                        <span className="text-text-secondary">Bono Patrocinio</span>
+                        <span className="text-text-secondary">{t('vip.sponsorBonus')}</span>
                       </div>
                     )}
                     {pkg.participates_in_bono_retorno && (
                       <div className="flex items-center gap-1">
                         <span style={{ color: '#FFD700' }}>★</span>
-                        <span style={{ color: '#FFD700' }}>Beneficio Compartido 8.5%</span>
+                        <span style={{ color: '#FFD700' }}>{t('vip.sharedBonus')}</span>
                       </div>
                     )}
                   </div>
@@ -291,12 +293,12 @@ export default function PaksPage() {
                     }}
                   >
                     {isBlockedByActive
-                      ? 'Bloqueado'
+                      ? t('vip.blocked')
                       : isUpgrade
-                          ? `Upgrade +$${upgradeDiff.toLocaleString()}`
+                          ? `${t('vip.upgrade')} +$${upgradeDiff.toLocaleString()}`
                           : pkg.is_enabled
-                            ? 'Activar'
-                            : 'No Disponible'}
+                            ? t('vip.selectPlan')
+                            : t('vip.notAvailable')}
                   </button>
                 </div>
               </div>
@@ -307,7 +309,7 @@ export default function PaksPage() {
       </div>
 
       <p className="mt-8 text-[10px] text-white/20 text-center uppercase tracking-wider px-4">
-        © 2026 Virtus. Todos los derechos reservados. El contenido y la marca están protegidos por la legislación vigente.
+        {t('common.copyright')}
       </p>
 
       <BottomNav />
