@@ -34,6 +34,13 @@ model User {
   rank_history       UserRankHistory[]
   current_rank       Int              @default(0)
   signal_executions  SignalExecution[]
+  kyc_status         KycStatus        @default(NOT_SUBMITTED)
+  kyc_selfie_url     String?
+  kyc_front_url      String?
+  kyc_back_url       String?
+  kyc_rejection_reason String?
+  kyc_submitted_at   DateTime?
+  kyc_reviewed_at    DateTime?
 
   @@index([sponsor_id])
   @@index([user_code])
@@ -335,4 +342,11 @@ model SignalExecution {
 enum SignalStatus {
   ACTIVE
   CLOSED
+}
+
+enum KycStatus {
+  NOT_SUBMITTED
+  PENDING
+  APPROVED
+  REJECTED
 }

@@ -21,6 +21,22 @@ type Tab =
   | 'config'
   | 'futuros'
   | 'rangos'
+  | 'kyc'
+
+interface KycUser {
+  id: string
+  username: string
+  full_name: string
+  email: string
+  country: string | null
+  carnet: string | null
+  kyc_status: 'NOT_SUBMITTED' | 'PENDING' | 'APPROVED' | 'REJECTED'
+  kyc_selfie_url: string | null
+  kyc_front_url: string | null
+  kyc_back_url: string | null
+  kyc_rejection_reason: string | null
+  kyc_submitted_at: string | null
+}
 
 interface Purchase {
   id: string
@@ -148,6 +164,15 @@ export default function AdminPage() {
   const [activeOffset, setActiveOffset] = useState(0)
   const [activeHasMore, setActiveHasMore] = useState(true)
 
+  // KYC state
+  const [kycUsers, setKycUsers] = useState<KycUser[]>([])
+  const [kycFilter, setKycFilter] = useState<'PENDING' | 'APPROVED' | 'REJECTED' | 'ALL'>('PENDING')
+  const [kycLoading, setKycLoading] = useState(false)
+  const [kycProcessing, setKycProcessing] = useState<string | null>(null)
+  const [kycRejectionReason, setKycRejectionReason] = useState<Record<string, string>>({})
+  const [kycShowReject, setKycShowReject] = useState<string | null>(null)
+  const [kycViewPhoto, setKycViewPhoto] = useState<string | null>(null)
+
   // Rangos state
   interface RankUser {
     id: string
@@ -227,6 +252,8 @@ export default function AdminPage() {
       fetchNews()
     } else if (tab === 'rangos') {
       fetchRanks('')
+    } else if (tab === 'kyc') {
+      fetchKycList('PENDING')
     }
   }, [tab, token])
 
@@ -523,6 +550,69 @@ export default function AdminPage() {
     }
   }
 
+  const fetchKycList = async (filter = kycFilter) => {
+    setKycLoading(true)
+    try {
+      const tk = getToken()
+      if (!tk) { router.push('/login'); return }
+      const res = await fetch(`/api/admin/kyc?status=${filter}`, {
+        headers: { Authorization: `Bearer ${tk}` },
+      })
+      if (res.status === 401 || res.status === 403) { handleAuthRedirect(res.status); return }
+      if (res.ok) {
+        const data = await res.json()
+        setKycUsers(data)
+      }
+    } catch { /* silent */ }
+    finally { setKycLoading(false) }
+  }
+
+  const handleKycApprove = async (userId: string) => {
+    if (!confirm('¿Aprobar verificación KYC de este usuario?')) return
+    setKycProcessing(userId)
+    try {
+      const tk = getToken()
+      const res = await fetch(`/api/admin/kyc/${userId}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tk}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'approve' }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        showToast('KYC aprobado', 'success')
+        fetchKycList(kycFilter)
+      } else {
+        showToast(data.error || 'Error al aprobar', 'error')
+      }
+    } catch { showToast('Error de conexión', 'error') }
+    finally { setKycProcessing(null) }
+  }
+
+  const handleKycReject = async (userId: string) => {
+    const reason = kycRejectionReason[userId]?.trim()
+    if (!reason) { showToast('Debes escribir el motivo de rechazo', 'error'); return }
+    if (!confirm('¿Rechazar verificación KYC?')) return
+    setKycProcessing(userId)
+    try {
+      const tk = getToken()
+      const res = await fetch(`/api/admin/kyc/${userId}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tk}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reject', rejection_reason: reason }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        showToast('KYC rechazado', 'info')
+        setKycShowReject(null)
+        setKycRejectionReason(prev => { const n = { ...prev }; delete n[userId]; return n })
+        fetchKycList(kycFilter)
+      } else {
+        showToast(data.error || 'Error al rechazar', 'error')
+      }
+    } catch { showToast('Error de conexión', 'error') }
+    finally { setKycProcessing(null) }
+  }
+
   const handleRecalculateRanks = async () => {
     if (!confirm('¿Recalcular rangos de todos los usuarios? Esto puede tomar unos segundos.')) return
     setRecalculating(true)
@@ -811,6 +901,7 @@ export default function AdminPage() {
     { key: 'news' as const, label: 'Noticias', icon: '📰' },
     { key: 'futuros' as const, label: 'Futuros', icon: '📊' },
     { key: 'rangos' as const, label: 'Rangos', icon: '🏆' },
+    { key: 'kyc' as const, label: 'KYC', icon: '🪪' },
   ]
 
 
@@ -1928,6 +2019,217 @@ export default function AdminPage() {
                   </Card>
                 )
               })
+            )}
+          </div>
+        )}
+
+        {/* ─── TAB: KYC ─── */}
+        {tab === 'kyc' && (
+          <div className="space-y-4">
+            {/* Header */}
+            <Card glassEffect>
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div>
+                  <h2 className="text-gold font-bold text-lg uppercase tracking-wider">Verificación KYC</h2>
+                  <p className="text-text-secondary text-xs mt-0.5">Revisión de identidad de usuarios</p>
+                </div>
+                {/* Filter buttons */}
+                <div className="flex gap-1 flex-wrap">
+                  {(['PENDING', 'APPROVED', 'REJECTED', 'ALL'] as const).map(f => (
+                    <button
+                      key={f}
+                      onClick={() => { setKycFilter(f); fetchKycList(f) }}
+                      className="px-3 py-1 rounded-full text-xs font-bold uppercase transition-all"
+                      style={{
+                        background: kycFilter === f
+                          ? f === 'PENDING' ? 'rgba(251,191,36,0.25)' : f === 'APPROVED' ? 'rgba(52,211,153,0.25)' : f === 'REJECTED' ? 'rgba(248,113,113,0.25)' : 'rgba(255,255,255,0.15)'
+                          : 'rgba(255,255,255,0.05)',
+                        border: kycFilter === f
+                          ? f === 'PENDING' ? '1px solid rgba(251,191,36,0.6)' : f === 'APPROVED' ? '1px solid rgba(52,211,153,0.6)' : f === 'REJECTED' ? '1px solid rgba(248,113,113,0.6)' : '1px solid rgba(255,255,255,0.3)'
+                          : '1px solid rgba(255,255,255,0.1)',
+                        color: kycFilter === f
+                          ? f === 'PENDING' ? '#FBBF24' : f === 'APPROVED' ? '#34D399' : f === 'REJECTED' ? '#F87171' : '#fff'
+                          : 'rgba(255,255,255,0.5)',
+                      }}
+                    >
+                      {f === 'ALL' ? 'Todos' : f === 'PENDING' ? 'Pendientes' : f === 'APPROVED' ? 'Aprobados' : 'Rechazados'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </Card>
+
+            {/* Photo viewer modal */}
+            {kycViewPhoto && (
+              <div
+                className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+                style={{ background: 'rgba(0,0,0,0.85)' }}
+                onClick={() => setKycViewPhoto(null)}
+              >
+                <div className="relative max-w-lg w-full" onClick={e => e.stopPropagation()}>
+                  <img src={kycViewPhoto} alt="KYC photo" className="w-full rounded-xl object-contain max-h-[80vh]" />
+                  <button
+                    onClick={() => setKycViewPhoto(null)}
+                    className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/60 flex items-center justify-center text-white text-lg"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* List */}
+            {kycLoading ? (
+              <Card><p className="text-center text-text-secondary py-4">Cargando...</p></Card>
+            ) : kycUsers.length === 0 ? (
+              <Card><p className="text-center text-text-secondary py-4">No hay solicitudes KYC {kycFilter !== 'ALL' ? `en estado ${kycFilter}` : ''}</p></Card>
+            ) : (
+              kycUsers.map(user => (
+                <Card key={user.id} glassEffect>
+                  <div className="space-y-3">
+                    {/* Status badge + name */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="font-bold text-white text-sm">{user.full_name}</p>
+                        <p className="text-text-secondary text-xs">@{user.username}</p>
+                        <p className="text-text-secondary text-[10px] mt-0.5">{user.email}</p>
+                      </div>
+                      <div
+                        className="flex-shrink-0 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase"
+                        style={{
+                          background: user.kyc_status === 'PENDING' ? 'rgba(251,191,36,0.15)' : user.kyc_status === 'APPROVED' ? 'rgba(52,211,153,0.15)' : 'rgba(248,113,113,0.15)',
+                          border: user.kyc_status === 'PENDING' ? '1px solid rgba(251,191,36,0.4)' : user.kyc_status === 'APPROVED' ? '1px solid rgba(52,211,153,0.4)' : '1px solid rgba(248,113,113,0.4)',
+                          color: user.kyc_status === 'PENDING' ? '#FBBF24' : user.kyc_status === 'APPROVED' ? '#34D399' : '#F87171',
+                        }}
+                      >
+                        {user.kyc_status === 'PENDING' ? 'Pendiente' : user.kyc_status === 'APPROVED' ? 'Aprobado' : 'Rechazado'}
+                      </div>
+                    </div>
+
+                    {/* Registration data */}
+                    <div className="grid grid-cols-2 gap-2 text-[11px]">
+                      <div className="bg-white/5 rounded-lg px-3 py-2">
+                        <p className="text-text-secondary uppercase tracking-wider text-[9px]">País</p>
+                        <p className="text-white font-medium mt-0.5">{user.country || '—'}</p>
+                      </div>
+                      <div className="bg-white/5 rounded-lg px-3 py-2">
+                        <p className="text-text-secondary uppercase tracking-wider text-[9px]">Carnet / CI</p>
+                        <p className="text-white font-medium mt-0.5">{user.carnet || '—'}</p>
+                      </div>
+                    </div>
+
+                    {/* Photos */}
+                    {(user.kyc_selfie_url || user.kyc_front_url || user.kyc_back_url) && (
+                      <div className="space-y-1.5">
+                        <p className="text-text-secondary text-[9px] uppercase tracking-wider">Documentos enviados</p>
+                        <div className="grid grid-cols-3 gap-2">
+                          {[
+                            { url: user.kyc_selfie_url, label: 'Selfie' },
+                            { url: user.kyc_front_url, label: 'Frente' },
+                            { url: user.kyc_back_url, label: 'Reverso' },
+                          ].map(({ url, label }) => (
+                            <button
+                              key={label}
+                              onClick={() => url && setKycViewPhoto(url)}
+                              disabled={!url}
+                              className="relative rounded-lg overflow-hidden aspect-square flex flex-col items-center justify-center transition-all"
+                              style={{
+                                background: url ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)',
+                                border: '1px solid rgba(255,255,255,0.1)',
+                              }}
+                            >
+                              {url ? (
+                                <>
+                                  <img src={url} alt={label} className="w-full h-full object-cover" />
+                                  <div className="absolute inset-0 bg-black/40 flex items-end justify-center pb-1">
+                                    <span className="text-[9px] text-white font-bold">{label}</span>
+                                  </div>
+                                </>
+                              ) : (
+                                <span className="text-text-secondary text-[9px]">{label}</span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                        <p className="text-[9px] text-text-secondary text-center opacity-50">Toca una foto para ampliarla</p>
+                      </div>
+                    )}
+
+                    {/* Submitted at */}
+                    {user.kyc_submitted_at && (
+                      <p className="text-[10px] text-text-secondary">
+                        Enviado: {new Date(user.kyc_submitted_at).toLocaleString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    )}
+
+                    {/* Rejection reason if rejected */}
+                    {user.kyc_status === 'REJECTED' && user.kyc_rejection_reason && (
+                      <div className="rounded-lg px-3 py-2" style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)' }}>
+                        <p className="text-[10px] text-[#F87171]">Motivo: {user.kyc_rejection_reason}</p>
+                      </div>
+                    )}
+
+                    {/* Action buttons (only for PENDING) */}
+                    {user.kyc_status === 'PENDING' && (
+                      <div className="space-y-2 pt-1">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleKycApprove(user.id)}
+                            disabled={kycProcessing === user.id}
+                            className="flex-1 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all"
+                            style={{
+                              background: 'linear-gradient(135deg, rgba(52,211,153,0.2), rgba(52,211,153,0.08))',
+                              border: '1px solid rgba(52,211,153,0.5)',
+                              color: '#34D399',
+                              opacity: kycProcessing === user.id ? 0.5 : 1,
+                            }}
+                          >
+                            {kycProcessing === user.id ? '...' : '✓ Aprobar'}
+                          </button>
+                          <button
+                            onClick={() => setKycShowReject(kycShowReject === user.id ? null : user.id)}
+                            disabled={kycProcessing === user.id}
+                            className="flex-1 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all"
+                            style={{
+                              background: 'linear-gradient(135deg, rgba(248,113,113,0.2), rgba(248,113,113,0.08))',
+                              border: '1px solid rgba(248,113,113,0.5)',
+                              color: '#F87171',
+                              opacity: kycProcessing === user.id ? 0.5 : 1,
+                            }}
+                          >
+                            ✕ Rechazar
+                          </button>
+                        </div>
+
+                        {kycShowReject === user.id && (
+                          <div className="space-y-2">
+                            <textarea
+                              className="w-full rounded-xl px-3 py-2 text-xs text-white resize-none"
+                              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(248,113,113,0.4)', outline: 'none', minHeight: 64 }}
+                              placeholder="Motivo del rechazo (requerido)..."
+                              value={kycRejectionReason[user.id] || ''}
+                              onChange={e => setKycRejectionReason(prev => ({ ...prev, [user.id]: e.target.value }))}
+                            />
+                            <button
+                              onClick={() => handleKycReject(user.id)}
+                              disabled={kycProcessing === user.id || !kycRejectionReason[user.id]?.trim()}
+                              className="w-full py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all"
+                              style={{
+                                background: 'rgba(248,113,113,0.2)',
+                                border: '1px solid rgba(248,113,113,0.6)',
+                                color: '#F87171',
+                                opacity: (!kycRejectionReason[user.id]?.trim() || kycProcessing === user.id) ? 0.4 : 1,
+                              }}
+                            >
+                              Confirmar Rechazo
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              ))
             )}
           </div>
         )}
