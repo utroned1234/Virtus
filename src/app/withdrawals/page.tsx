@@ -76,9 +76,8 @@ export default function WithdrawalsPage() {
     setError('')
 
     const amountNum = parseFloat(amount)
-    const allowedAmounts = [5, 20, 50, 100, 500, 1000]
-    if (isNaN(amountNum) || !allowedAmounts.includes(amountNum)) {
-      setError('Solo se permiten retiros de $5, $20, $50, $100, $500 o $1,000')
+    if (isNaN(amountNum) || amountNum < 1) {
+      setError('El monto mínimo de retiro es $1')
       return
     }
 
@@ -166,15 +165,6 @@ export default function WithdrawalsPage() {
     }
   }
 
-  const allowedAmounts = [
-    { amount: 5, color: '#33e6ff', rgb: '51, 230, 255' },
-    { amount: 20, color: '#818CF8', rgb: '129, 140, 248' },
-    { amount: 50, color: '#4ADE80', rgb: '74, 222, 128' },
-    { amount: 100, color: '#FB923C', rgb: '251, 146, 60' },
-    { amount: 500, color: '#FBBF24', rgb: '251, 191, 36' },
-    { amount: 1000, color: '#C084FC', rgb: '192, 132, 252' },
-  ]
-
   const calculateFinalAmount = (amount: number) => {
     const discount = amount * 0.08
     return amount - discount
@@ -260,7 +250,10 @@ export default function WithdrawalsPage() {
               <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{
                 background: 'rgba(74, 222, 128, 0.15)',
               }}>
-                <span className="text-sm">📅</span>
+                <svg className="w-4 h-4 text-[#4ADE80]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" />
+                  <path d="M16 2v4M8 2v4M3 10h18" />
+                </svg>
               </div>
               <div>
                 <p className="text-[11px] font-bold text-[#4ADE80]">Dias de retiro</p>
@@ -277,7 +270,12 @@ export default function WithdrawalsPage() {
               <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{
                 background: 'rgba(248, 113, 113, 0.15)',
               }}>
-                <span className="text-sm">💰</span>
+                <svg className="w-4 h-4 text-[#F87171]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M9 15l6-6" />
+                  <circle cx="9.5" cy="9.5" r="0.5" fill="currentColor" />
+                  <circle cx="14.5" cy="14.5" r="0.5" fill="currentColor" />
+                </svg>
               </div>
               <div>
                 <p className="text-[11px] font-bold text-[#F87171]">Descuento del 8%</p>
@@ -294,7 +292,10 @@ export default function WithdrawalsPage() {
               <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{
                 background: 'rgba(251, 191, 36, 0.15)',
               }}>
-                <span className="text-sm">⏱️</span>
+                <svg className="w-4 h-4 text-[#FBBF24]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 7v5l3 3" />
+                </svg>
               </div>
               <div>
                 <p className="text-[11px] font-bold text-[#FBBF24]">Tiempo de procesamiento</p>
@@ -311,7 +312,9 @@ export default function WithdrawalsPage() {
               <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{
                 background: 'rgba(129, 140, 248, 0.15)',
               }}>
-                <span className="text-sm">👑</span>
+                <svg className="w-4 h-4 text-[#818CF8]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M2 17l3-8 4.5 4.5L12 5l2.5 8.5L19 9l3 8H2z" />
+                </svg>
               </div>
               <div>
                 <p className="text-[11px] font-bold text-[#818CF8]">Requisito</p>
@@ -321,86 +324,58 @@ export default function WithdrawalsPage() {
           </div>
         </div>
 
-        {/* Monto Selection */}
+        {/* Monto libre */}
         <div className="glass-card !p-4">
           <p className="text-[10px] font-bold text-[#34D399] text-center mb-3 uppercase tracking-widest">
-            Selecciona Monto
+            Ingresa el Monto
           </p>
-          <div className="grid grid-cols-3 gap-2 mb-4">
-            {allowedAmounts.map(({ amount: mont, color, rgb }) => {
-              const isSelected = amount === mont.toString()
-              const finalAmt = calculateFinalAmount(mont)
-
-              return (
-                <button
-                  key={mont}
-                  onClick={() => setAmount(mont.toString())}
-                  className="rounded-xl p-2.5 transition-all duration-200"
-                  style={{
-                    background: isSelected
-                      ? `linear-gradient(135deg, rgba(${rgb}, 0.2), rgba(${rgb}, 0.08))`
-                      : 'rgba(255, 255, 255, 0.03)',
-                    border: `1px solid rgba(${rgb}, ${isSelected ? '0.6' : '0.15'})`,
-                    boxShadow: isSelected ? `0 0 12px rgba(${rgb}, 0.2)` : 'none',
-                    transform: isSelected ? 'scale(1.03)' : 'scale(1)',
-                  }}
-                >
-                  <p className="text-sm font-bold" style={{ color: isSelected ? color : 'rgba(255,255,255,0.7)' }}>
-                    ${mont.toLocaleString()}
-                  </p>
-                  <p className="text-[8px] mt-0.5" style={{ color: '#4ADE80' }}>
-                    Recibe: ${finalAmt.toLocaleString()}
-                  </p>
-                </button>
-              )
-            })}
-          </div>
-
-          {/* Selected amount summary */}
-          {amount && (
-            <div className="rounded-xl p-3 mb-4" style={{
-              background: 'rgba(52, 211, 153, 0.06)',
-              border: '1px solid rgba(52, 211, 153, 0.15)',
-            }}>
-              <div className="flex justify-between text-[10px] mb-1">
-                <span className="text-white/50">Monto solicitado</span>
-                <span className="text-white font-medium">${parseFloat(amount).toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between text-[10px] mb-1">
-                <span className="text-white/50">Descuento (8%)</span>
-                <span className="text-[#F87171] font-medium">-${(parseFloat(amount) * 0.08).toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-xs pt-1.5 border-t border-white/10">
-                <span className="text-white/70 font-medium">Recibes</span>
-                <span className="text-[#4ADE80] font-bold">${calculateFinalAmount(parseFloat(amount)).toFixed(2)}</span>
-              </div>
-            </div>
-          )}
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-3">
-            <Input
-              label="Monto a retirar"
-              type="number"
-              step="0.01"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="0.00"
-              required
-            />
+            <div className="space-y-1">
+              <Input
+                label="Monto a retirar (mínimo $1)"
+                type="number"
+                step="0.01"
+                min="1"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="0.00"
+                required
+              />
+              {amount && parseFloat(amount) > 0 && (
+                <div className="rounded-xl p-3 mt-2" style={{
+                  background: 'rgba(52, 211, 153, 0.06)',
+                  border: '1px solid rgba(52, 211, 153, 0.15)',
+                }}>
+                  <div className="flex justify-between text-[10px] mb-1">
+                    <span className="text-white/50">Monto solicitado</span>
+                    <span className="text-white font-medium">${parseFloat(amount).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-[10px] mb-1">
+                    <span className="text-white/50">Descuento (8%)</span>
+                    <span className="text-[#F87171] font-medium">-${(parseFloat(amount) * 0.08).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs pt-1.5 border-t border-white/10">
+                    <span className="text-white/70 font-medium">Recibes</span>
+                    <span className="text-[#4ADE80] font-bold">${calculateFinalAmount(parseFloat(amount)).toFixed(2)}</span>
+                  </div>
+                </div>
+              )}
+            </div>
 
             <Input
-              label="ID de Billetera Binance (USDT)"
+              label="ID de Billetera"
               type="text"
               value={binanceId}
               onChange={(e) => setBinanceId(e.target.value)}
-              placeholder="Tu ID o dirección de Binance"
+              placeholder="Tu ID o dirección de billetera"
               required
             />
 
             <div className="space-y-1.5">
               <label className="text-[10px] text-white/60 font-medium ml-1 uppercase tracking-wider">
-                QR de tu Binance para recibir <span className="text-red-400">*</span>
+                QR de tu Billeta para recibir <span className="text-red-400">*</span>
               </label>
               <div
                 className="relative rounded-xl p-3 text-center cursor-pointer transition-all"
@@ -433,7 +408,7 @@ export default function WithdrawalsPage() {
                     <svg className="w-6 h-6 mx-auto text-white/20 mb-1" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
                     </svg>
-                    <p className="text-[10px] text-white/40">Sube tu QR de Binance</p>
+                    <p className="text-[10px] text-white/40">Sube tu QR de tu Billitera</p>
                   </div>
                 )}
               </div>

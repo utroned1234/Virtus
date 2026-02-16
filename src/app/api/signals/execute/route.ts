@@ -3,7 +3,8 @@ import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/auth/middleware'
 
 // POST: execute a signal with a code
-// Creates a FutureOrder that auto-closes 15 min after signal was published
+// Capital = wallet balance (sum of WalletLedger)
+// Invests 1% of wallet balance, auto-closes 15 min after signal was published
 export async function POST(req: NextRequest) {
   const authResult = requireAuth(req)
   if ('error' in authResult) {
@@ -46,21 +47,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Ya ejecutaste esta señal' }, { status: 409 })
     }
 
-    // Get user's highest-value ACTIVE purchase for capital base
+    // Capital = wallet balance (billetera)
+    const walletSum = await prisma.walletLedger.aggregate({
+      where: { user_id: userId },
+      _sum: { amount_bs: true },
+    })
+
+    const capitalBefore = walletSum._sum.amount_bs || 0
+
+    if (capitalBefore <= 0) {
+      return NextResponse.json({ error: 'No tienes saldo en billetera para operar' }, { status: 400 })
+    }
+
+    // Get user's ACTIVE purchase (needed for signalExecution record)
     const purchase = await prisma.purchase.findFirst({
       where: { user_id: userId, status: 'ACTIVE' },
       orderBy: { vip_package: { investment_bs: 'desc' } },
-      include: { vip_package: { select: { investment_bs: true } } },
     })
 
     if (!purchase) {
       return NextResponse.json({ error: 'No tienes un paquete activo para operar' }, { status: 400 })
     }
-
-    // Use current_capital if set, otherwise fall back to vip_package.investment_bs
-    const capitalBefore = (purchase as any).current_capital > 0
-      ? (purchase as any).current_capital
-      : purchase.vip_package.investment_bs
 
     // Get user's current rank
     const user = await prisma.user.findUnique({
@@ -69,16 +76,12 @@ export async function POST(req: NextRequest) {
     })
     const userRank = (user as any)?.current_rank ?? 0
 
-    // Calculate gains: 1% of capital
-    const gainTotal = capitalBefore * 0.01
-    const capitalAdded = gainTotal * 0.4
-    const distributed = gainTotal * 0.6   // 60% pool → se distribuye entre ascendentes con rango
-    const senalProfit = 0                 // El usuario que ejecuta NO recibe nada del 60%
-    const globalBonus = distributed       // Se guarda el pool completo para distribuir en auto-close
-    const newCapital = capitalBefore + capitalAdded
-
-    // Investment amount = 1% of capital
-    const investmentAmount = gainTotal
+    // Calculate gains: 1% of wallet balance (rounded to 2 decimals)
+    const round2 = (n: number) => Math.round(n * 100) / 100
+    const gainTotal = round2(capitalBefore * 0.01)
+    const capitalAdded = round2(gainTotal * 0.4)        // 40% → goes to user's wallet on auto-close
+    const globalBonus = round2(gainTotal * 0.6)          // 60% → global bonus pool for ranked ancestors
+    const newCapital = round2(capitalBefore + capitalAdded)  // se acredita al cerrar, no ahora
 
     await prisma.$transaction(async (tx) => {
       // Record execution (for tracking, profits credited on auto-close)
@@ -90,21 +93,21 @@ export async function POST(req: NextRequest) {
           capital_before: capitalBefore,
           gain_total: gainTotal,
           capital_added: capitalAdded,
-          senal_profit: senalProfit,
+          senal_profit: 0,
           global_bonus: globalBonus,
           user_rank: userRank,
         },
       })
 
-      // Create FutureOrder (signal-based, no wallet deduction)
+      // Create FutureOrder (signal-based)
       await tx.futureOrder.create({
         data: {
           user_id: userId,
           type: signal.direction || 'CALL',
           pair: signal.pair,
-          amount_bs: investmentAmount,
+          amount_bs: gainTotal,
           leverage: 1,
-          entry_price: capitalBefore,
+          entry_price: gainTotal,
           status: 'ACTIVE',
           pnl_bs: gainTotal,
           signal_id: signal.id,
@@ -112,11 +115,6 @@ export async function POST(req: NextRequest) {
         },
       })
 
-      // Update purchase current_capital immediately
-      await (tx as any).purchase.update({
-        where: { id: purchase.id },
-        data: { current_capital: newCapital },
-      })
     })
 
     return NextResponse.json({
@@ -125,7 +123,7 @@ export async function POST(req: NextRequest) {
       capital_after: newCapital,
       gain_total: gainTotal,
       capital_added: capitalAdded,
-      senal_profit: senalProfit,
+      senal_profit: 0,
       global_bonus: globalBonus,
       user_rank: userRank,
       auto_close_at: autoCloseAt.toISOString(),

@@ -137,6 +137,21 @@ export async function payInversion(
   })
 }
 
+// Anular TODOS los REFERRAL_BONUS y BONO_RETORNO acumulados del usuario
+// Se usa cuando se activa con paquete sin bono retorno ($50 o $150)
+export async function wipeAccumulatedBonuses(
+  client: DbClient,
+  userId: string
+): Promise<number> {
+  const deleted = await client.walletLedger.deleteMany({
+    where: {
+      user_id: userId,
+      type: { in: ['REFERRAL_BONUS', 'BONO_RETORNO'] as any },
+    },
+  })
+  return deleted.count
+}
+
 // Bono Retorno: 8.5% del monto de inversión para paquetes >= $300
 export async function payBonoRetorno(
   client: DbClient,

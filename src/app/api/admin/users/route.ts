@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
       select: {
         user_id: true,
         vip_package: {
-          select: { name: true },
+          select: { name: true, level: true },
         },
       },
     })
@@ -51,14 +51,15 @@ export async function GET(req: NextRequest) {
     )
 
     const activePurchaseMap = new Map(
-      activePurchases.map((p) => [p.user_id, p.vip_package.name])
+      activePurchases.map((p) => [p.user_id, { name: p.vip_package.name, level: p.vip_package.level }])
     )
 
     // Combine data
     const usersWithBalance = users.map((user) => ({
       ...user,
       balance: balanceMap.get(user.id) || 0,
-      active_vip: activePurchaseMap.get(user.id) || null,
+      active_vip: activePurchaseMap.get(user.id)?.name || null,
+      active_vip_level: activePurchaseMap.get(user.id)?.level ?? null,
     }))
 
     return NextResponse.json(usersWithBalance)

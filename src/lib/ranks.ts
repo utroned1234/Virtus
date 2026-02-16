@@ -151,11 +151,6 @@ export async function recalculateUserRank(
   let bonusPaid = false
 
   if (newRank > oldRank) {
-    // Check if one-time bonus for this rank was already paid
-    const existingHistory = await (db as any).userRankHistory.findFirst({
-      where: { user_id: userId, rank: newRank, bonus_paid: true },
-    })
-
     const cfg = RANK_CONFIG[newRank]
 
     await db.$transaction(async (tx) => {
@@ -165,12 +160,17 @@ export async function recalculateUserRank(
         data: { current_rank: newRank },
       })
 
+      // Check inside transaction to prevent race condition (double bonus payment)
+      const existingHistory = await (tx as any).userRankHistory.findFirst({
+        where: { user_id: userId, rank: newRank, bonus_paid: true },
+      })
+
       // Record rank history
       await (tx as any).userRankHistory.create({
         data: {
           user_id: userId,
           rank: newRank,
-          bonus_paid: !existingHistory, // pay if not paid before
+          bonus_paid: !existingHistory,
           bonus_paid_at: !existingHistory ? new Date() : null,
         },
       })

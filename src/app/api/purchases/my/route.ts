@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
             name: true,
             level: true,
             daily_profit_bs: true,
+            investment_bs: true,
           },
         },
       },

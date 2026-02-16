@@ -47,29 +47,35 @@ export async function POST(req: NextRequest) {
         const { type, pair, amount, leverage, entryPrice, tp, sl } = await req.json()
 
         // Validate inputs
-        if (!amount || amount <= 0) {
+        if (!amount || amount <= 0 || !isFinite(amount)) {
             return NextResponse.json({ error: 'Monto inválido' }, { status: 400 })
         }
 
-        // Check balance
-        const ledgerSum = await prisma.walletLedger.aggregate({
-            where: { user_id: authResult.user.userId },
-            _sum: { amount_bs: true },
-        })
-        const balance = ledgerSum._sum.amount_bs || 0
-
-        if (balance < amount) {
-            return NextResponse.json({ error: 'Saldo insuficiente' }, { status: 400 })
+        if (!type || !['CALL', 'PUT'].includes(type)) {
+            return NextResponse.json({ error: 'Tipo inválido' }, { status: 400 })
         }
 
-        // Transaction: Deduct balance & create order
+        const roundedAmount = Math.round(amount * 100) / 100
+
+        // Transaction: Check balance + Deduct + Create order (all atomic)
         const order = await prisma.$transaction(async (tx) => {
-            // 1. Deduct balance
+            // 1. Check balance INSIDE transaction to prevent race condition
+            const ledgerSum = await tx.walletLedger.aggregate({
+                where: { user_id: authResult.user.userId },
+                _sum: { amount_bs: true },
+            })
+            const balance = ledgerSum._sum.amount_bs || 0
+
+            if (balance < roundedAmount) {
+                throw new Error('INSUFFICIENT_BALANCE')
+            }
+
+            // 2. Deduct balance
             await tx.walletLedger.create({
                 data: {
                     user_id: authResult.user.userId,
                     type: 'FUTURE_ENTRY',
-                    amount_bs: -amount,
+                    amount_bs: -roundedAmount,
                     description: `Entrada Futuros ${pair} ${type} x${leverage}`
                 }
             })
@@ -80,7 +86,7 @@ export async function POST(req: NextRequest) {
                     user_id: authResult.user.userId,
                     type,
                     pair,
-                    amount_bs: amount,
+                    amount_bs: roundedAmount,
                     leverage,
                     entry_price: entryPrice,
                     status: 'ACTIVE',
@@ -93,7 +99,10 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ order })
 
-    } catch (error) {
+    } catch (error: any) {
+        if (error?.message === 'INSUFFICIENT_BALANCE') {
+            return NextResponse.json({ error: 'Saldo insuficiente' }, { status: 400 })
+        }
         console.error('Future Order POST error:', error)
         return NextResponse.json({ error: 'Error al crear orden' }, { status: 500 })
     }

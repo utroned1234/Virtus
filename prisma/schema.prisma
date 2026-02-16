@@ -15,6 +15,7 @@ model User {
   email              String           @unique
   password_hash      String
   full_name          String
+  carnet             String?
   profile_image_url  String?
   country            String?
   language           String?          @default("es")

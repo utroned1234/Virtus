@@ -102,6 +102,7 @@ export default function SignupClient({
   const [formData, setFormData] = useState({
     sponsor_code: defaultSponsorCode,
     full_name: '',
+    carnet: '',
     username: '',
     email: '',
     password: '',
@@ -139,6 +140,7 @@ export default function SignupClient({
         body: JSON.stringify({
           sponsor_code: formData.sponsor_code,
           full_name: formData.full_name,
+          carnet: formData.carnet,
           username: formData.username,
           email: formData.email,
           password: formData.password,
@@ -208,6 +210,15 @@ export default function SignupClient({
             required
             value={formData.full_name}
             onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+          />
+
+          <Input
+            label="Número de Carnet / Cédula"
+            type="text"
+            required
+            value={formData.carnet}
+            onChange={(e) => setFormData({ ...formData, carnet: e.target.value })}
+            placeholder="Ej: 12345678"
           />
 
           {/* País */}

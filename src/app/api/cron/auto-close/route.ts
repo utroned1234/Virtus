@@ -2,10 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { RANK_CONFIG } from '@/lib/ranks'
 
-// POST: Called by Vercel Cron every minute
-// Closes ALL expired signal orders for ALL users — works even if browser is closed
+// POST: Called by Cron every minute
+// Closes ALL expired signal orders for ALL users
 export async function POST(req: NextRequest) {
-  // Verify cron secret
   const authHeader = req.headers.get('authorization')
   const cronSecret = process.env.CRON_SECRET
 
@@ -16,7 +15,6 @@ export async function POST(req: NextRequest) {
   try {
     const now = new Date()
 
-    // Find ALL active signal-based orders that have expired, across all users
     const expiredOrders = await prisma.futureOrder.findMany({
       where: {
         status: 'ACTIVE',
@@ -33,19 +31,14 @@ export async function POST(req: NextRequest) {
 
     for (const order of expiredOrders) {
       try {
-        // Get signal execution for this order
         const execution = await (prisma as any).signalExecution.findFirst({
-          where: {
-            signal_id: order.signal_id,
-            user_id: order.user_id,
-          },
+          where: { signal_id: order.signal_id, user_id: order.user_id },
         })
 
         if (!execution) continue
 
-        // Walk up the sponsor tree to find ranked ancestors
+        // Walk up the sponsor tree
         const ancestors: Array<{ id: string; rank: number; rankPct: number }> = []
-
         const executingUser = await prisma.user.findUnique({
           where: { id: order.user_id },
           select: { sponsor_id: true },
@@ -75,9 +68,9 @@ export async function POST(req: NextRequest) {
         }
 
         await prisma.$transaction(async (tx) => {
-          // Close the order as WIN
-          await tx.futureOrder.update({
-            where: { id: order.id },
+          // Prevent double-close: only update if still ACTIVE
+          const updated = await tx.futureOrder.updateMany({
+            where: { id: order.id, status: 'ACTIVE' },
             data: {
               status: 'WIN',
               exit_price: execution.capital_before + execution.capital_added,
@@ -85,9 +78,22 @@ export async function POST(req: NextRequest) {
             },
           })
 
+          // If already closed by another process, skip wallet credits
+          if (updated.count === 0) return
+
+          // Credit 40% gain to user's wallet
+          await tx.walletLedger.create({
+            data: {
+              user_id: order.user_id,
+              type: 'SENAL_PROFIT',
+              amount_bs: execution.capital_added,
+              description: `Ganancia señal (40% de ${execution.gain_total.toFixed(2)})`,
+            },
+          })
+
           // Distribute GLOBAL_BONUS to ranked ancestors
           for (const ancestor of ancestors) {
-            const bonusAmount = execution.global_bonus * ancestor.rankPct
+            const bonusAmount = Math.round(execution.global_bonus * ancestor.rankPct * 100) / 100
             if (bonusAmount > 0) {
               await tx.walletLedger.create({
                 data: {

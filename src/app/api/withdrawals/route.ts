@@ -49,11 +49,17 @@ export async function POST(req: NextRequest) {
   try {
     const { amount_bs, bank_name, qr_image_url, payout_method, phone_number } = await req.json()
 
-    // Validar montos exactos permitidos
-    const allowedAmounts = [5, 20, 50, 100, 500, 1000]
-    if (!amount_bs || !allowedAmounts.includes(amount_bs)) {
+    // Validar monto: cualquier valor >= 1 y con máximo 2 decimales
+    if (!amount_bs || typeof amount_bs !== 'number' || amount_bs < 1) {
       return NextResponse.json(
-        { error: 'Solo se permiten retiros de $5, $20, $50, $100, $500 o $1,000' },
+        { error: 'El monto mínimo de retiro es $1' },
+        { status: 400 }
+      )
+    }
+    const roundedAmount = Math.round(amount_bs * 100) / 100
+    if (roundedAmount !== amount_bs) {
+      return NextResponse.json(
+        { error: 'El monto no puede tener más de 2 decimales' },
         { status: 400 }
       )
     }

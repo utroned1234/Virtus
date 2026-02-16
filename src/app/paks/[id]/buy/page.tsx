@@ -17,7 +17,7 @@ interface VipPackage {
 interface ActivePurchase {
   id: string
   investment_bs: number
-  vip_package: { level: number; name: string }
+  vip_package: { level: number; name: string; investment_bs: number }
 }
 
 export default function BuyPackagePage() {
@@ -68,10 +68,11 @@ export default function BuyPackagePage() {
             if (highest && highest.vip_package?.level < data.level) {
               setActivePurchase({
                 id: highest.id,
-                investment_bs: highest.investment_bs,
+                investment_bs: highest.vip_package.investment_bs,
                 vip_package: {
                   level: highest.vip_package.level,
                   name: highest.vip_package.name,
+                  investment_bs: highest.vip_package.investment_bs,
                 },
               })
             }

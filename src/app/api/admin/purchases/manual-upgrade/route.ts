@@ -57,8 +57,8 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Solo cobrar la diferencia
-    const differenceAmount = newPackage.investment_bs - currentPurchase.investment_bs
+    // Solo cobrar la diferencia (usar vip_package.investment_bs, no purchase.investment_bs que puede ser diff previa)
+    const differenceAmount = newPackage.investment_bs - currentPurchase.vip_package.investment_bs
     const now = new Date()
 
     await prisma.$transaction(async (tx) => {

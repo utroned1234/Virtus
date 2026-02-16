@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth/middleware'
-import { payReferralBonusesWithClient, payBonoRetorno, payInversion } from '@/lib/referrals'
+import { payReferralBonusesWithClient, payBonoRetorno, payInversion, wipeAccumulatedBonuses } from '@/lib/referrals'
 
 export async function POST(
   req: NextRequest,
@@ -62,18 +62,23 @@ export async function POST(
         },
       })
 
+      // Wipe solo en activación nueva ($50 o $150), NUNCA en upgrade
+      if (!isUpgrade && vipPackage && !vipPackage.participates_in_bono_retorno) {
+        await wipeAccumulatedBonuses(tx, purchase.user_id)
+      }
+
       // Acreditar inversión (monto pagado, diferencia si es upgrade)
       if (vipPackage) {
         await payInversion(tx, purchase.user_id, purchase.investment_bs, vipPackage.name)
       }
 
       // UPGRADE: no se pagan bonos de ningún tipo
-      if (!isUpgrade) {
-        if (vipPackage?.participates_in_referral_bonus) {
-          await payReferralBonusesWithClient(tx, purchase.user_id, purchase.investment_bs)
+      if (!isUpgrade && vipPackage) {
+        if (vipPackage.participates_in_referral_bonus) {
+          await payReferralBonusesWithClient(tx, purchase.user_id, vipPackage.investment_bs)
         }
-        if (vipPackage?.participates_in_bono_retorno) {
-          await payBonoRetorno(tx, purchase.user_id, purchase.investment_bs, vipPackage.name)
+        if (vipPackage.participates_in_bono_retorno) {
+          await payBonoRetorno(tx, purchase.user_id, vipPackage.investment_bs, vipPackage.name)
         }
       }
     })
