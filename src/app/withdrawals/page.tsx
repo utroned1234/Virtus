@@ -6,6 +6,7 @@ import Input from '@/components/ui/Input'
 import BottomNav from '@/components/ui/BottomNav'
 import { useToast } from '@/components/ui/Toast'
 import ScreenshotProtection from '@/components/ui/ScreenshotProtection'
+import { useLanguage } from '@/context/LanguageContext'
 
 interface Withdrawal {
   id: string
@@ -17,6 +18,7 @@ interface Withdrawal {
 
 export default function WithdrawalsPage() {
   const router = useRouter()
+  const { t, language } = useLanguage()
   const [amount, setAmount] = useState('')
   const [binanceId, setBinanceId] = useState('')
   const [qrFile, setQrFile] = useState<File | null>(null)
@@ -28,6 +30,8 @@ export default function WithdrawalsPage() {
   const [error, setError] = useState('')
   const [kycStatus, setKycStatus] = useState<string>('NOT_SUBMITTED')
   const { showToast } = useToast()
+
+  const dateLocale = language === 'es' ? 'es-ES' : 'en-US'
 
   useEffect(() => {
     fetchData()
@@ -56,7 +60,6 @@ export default function WithdrawalsPage() {
         setWithdrawals(data.withdrawals)
       }
 
-      // Obtener estado KYC
       const kycRes = await fetch('/api/kyc', {
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -87,17 +90,17 @@ export default function WithdrawalsPage() {
 
     const amountNum = parseFloat(amount)
     if (isNaN(amountNum) || amountNum < 1) {
-      setError('El monto mínimo de retiro es $1')
+      setError(t('withdrawals.minAmount'))
       return
     }
 
     if (amountNum > balance) {
-      setError('Saldo insuficiente')
+      setError(language === 'es' ? 'Saldo insuficiente' : 'Insufficient balance')
       return
     }
 
     if (!binanceId || !qrFile) {
-      setError('Ingresa tu ID de Binance y sube tu QR')
+      setError(language === 'es' ? 'Ingresa tu ID de Binance y sube tu QR' : 'Enter your Binance ID and upload your QR')
       return
     }
 
@@ -124,7 +127,7 @@ export default function WithdrawalsPage() {
       })
 
       if (!uploadRes.ok) {
-        throw new Error('Error al subir la imagen QR')
+        throw new Error(language === 'es' ? 'Error al subir la imagen QR' : 'Error uploading QR image')
       }
 
       const { url: qrImageUrl } = await uploadRes.json()
@@ -146,17 +149,22 @@ export default function WithdrawalsPage() {
 
       if (!withdrawalRes.ok) {
         const data = await withdrawalRes.json()
-        throw new Error(data.error || 'Error al solicitar retiro')
+        throw new Error(data.error || (language === 'es' ? 'Error al solicitar retiro' : 'Error requesting withdrawal'))
       }
 
-      showToast('Solicitud exitosa. Tu pago se abonara en 24 a 72 horas.', 'success')
+      showToast(
+        language === 'es'
+          ? 'Solicitud exitosa. Tu pago se abonará en 24 a 72 horas.'
+          : 'Request successful. Your payment will be credited in 24 to 72 hours.',
+        'success'
+      )
       setAmount('')
       setBinanceId('')
       setQrFile(null)
       setQrPreview(null)
       fetchData()
     } catch (err: any) {
-      setError(err.message || 'Error al procesar retiro')
+      setError(err.message || (language === 'es' ? 'Error al procesar retiro' : 'Error processing withdrawal'))
     } finally {
       setLoading(false)
     }
@@ -165,11 +173,11 @@ export default function WithdrawalsPage() {
   const getStatusStyle = (status: string) => {
     switch (status) {
       case 'PENDING':
-        return { color: '#FBBF24', bg: 'rgba(251, 191, 36, 0.1)', border: 'rgba(251, 191, 36, 0.3)', icon: '⏳', text: 'Pendiente' }
+        return { color: '#FBBF24', bg: 'rgba(251, 191, 36, 0.1)', border: 'rgba(251, 191, 36, 0.3)', icon: '⏳', text: t('withdrawals.statusPending') }
       case 'PAID':
-        return { color: '#4ADE80', bg: 'rgba(74, 222, 128, 0.1)', border: 'rgba(74, 222, 128, 0.3)', icon: '✓', text: 'Pagado' }
+        return { color: '#4ADE80', bg: 'rgba(74, 222, 128, 0.1)', border: 'rgba(74, 222, 128, 0.3)', icon: '✓', text: t('withdrawals.statusPaid') }
       case 'REJECTED':
-        return { color: '#F87171', bg: 'rgba(248, 113, 113, 0.1)', border: 'rgba(248, 113, 113, 0.3)', icon: '✕', text: 'Rechazado' }
+        return { color: '#F87171', bg: 'rgba(248, 113, 113, 0.1)', border: 'rgba(248, 113, 113, 0.3)', icon: '✕', text: t('withdrawals.statusRejected') }
       default:
         return { color: '#94A3B8', bg: 'rgba(148, 163, 184, 0.1)', border: 'rgba(148, 163, 184, 0.3)', icon: '?', text: status }
     }
@@ -187,9 +195,9 @@ export default function WithdrawalsPage() {
 
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-xl font-bold text-[#34D399]">Billetera</h1>
+          <h1 className="text-xl font-bold text-[#34D399]">{t('withdrawals.title')}</h1>
           <p className="mt-1 text-white/50 uppercase tracking-wider text-[10px]">
-            Solicita tu retiro
+            {t('withdrawals.subtitle')}
           </p>
         </div>
 
@@ -198,7 +206,7 @@ export default function WithdrawalsPage() {
           <div className="absolute inset-0 opacity-5" style={{
             background: 'radial-gradient(circle at 50% 0%, rgba(52, 211, 153, 0.4), transparent 70%)',
           }} />
-          <p className="text-[10px] text-white/50 uppercase tracking-widest mb-1 relative z-10">Saldo Disponible</p>
+          <p className="text-[10px] text-white/50 uppercase tracking-widest mb-1 relative z-10">{t('withdrawals.balance')}</p>
           <p className="text-3xl font-bold text-[#34D399] relative z-10">
             ${balance.toFixed(2)}
           </p>
@@ -215,7 +223,7 @@ export default function WithdrawalsPage() {
                 <div className="flex items-center gap-2">
                   <div className={`w-2 h-2 rounded-full ${canWithdraw ? 'bg-[#4ADE80]' : 'bg-[#FBBF24]'} animate-pulse`} />
                   <span className={`text-[10px] font-bold uppercase tracking-wider ${canWithdraw ? 'text-[#4ADE80]' : 'text-[#FBBF24]'}`}>
-                    {canWithdraw ? 'Retiro desbloqueado' : 'Progreso para retirar'}
+                    {canWithdraw ? t('withdrawals.withdrawalUnlocked') : t('withdrawals.progressBar')}
                   </span>
                 </div>
                 <span className="text-[10px] font-bold text-white">{progress.toFixed(0)}%</span>
@@ -232,12 +240,12 @@ export default function WithdrawalsPage() {
                 />
               </div>
               <div className="flex justify-between text-[9px] text-white/40">
-                <span>Tu saldo: ${balance.toFixed(2)}</span>
-                <span>Meta: ${target.toFixed(2)} (2x inversión)</span>
+                <span>{t('withdrawals.yourBalance')}: ${balance.toFixed(2)}</span>
+                <span>{t('withdrawals.goal')}: ${target.toFixed(2)} ({t('withdrawals.xInvestment')})</span>
               </div>
               {!canWithdraw && (
                 <p className="text-[9px] text-[#FBBF24]/70 text-center pt-1">
-                  Faltan ${(target - balance).toFixed(2)} USD para poder retirar
+                  {t('withdrawals.needMore').replace('{{amount}}', `${(target - balance).toFixed(2)}`)}
                 </p>
               )}
             </div>
@@ -248,7 +256,7 @@ export default function WithdrawalsPage() {
         <div className="glass-card !p-4 space-y-3">
           <div className="flex items-center gap-2 mb-1">
             <div className="w-2 h-2 rounded-full bg-[#FBBF24] animate-pulse" />
-            <span className="text-[10px] font-bold text-[#FBBF24] uppercase tracking-wider">Condiciones de retiro</span>
+            <span className="text-[10px] font-bold text-[#FBBF24] uppercase tracking-wider">{t('withdrawals.conditions')}</span>
           </div>
 
           <div className="space-y-2">
@@ -266,9 +274,9 @@ export default function WithdrawalsPage() {
                 </svg>
               </div>
               <div>
-                <p className="text-[11px] font-bold text-[#4ADE80]">Dias de retiro</p>
-                <p className="text-[10px] text-white/60 mt-0.5">Lunes a Viernes (dias habiles)</p>
-                <p className="text-[9px] text-white/35 mt-0.5">Sabados, domingos y feriados no se procesan</p>
+                <p className="text-[11px] font-bold text-[#4ADE80]">{t('withdrawals.withdrawalDays')}</p>
+                <p className="text-[10px] text-white/60 mt-0.5">{t('withdrawals.withdrawalDaysDesc')}</p>
+                <p className="text-[9px] text-white/35 mt-0.5">{t('withdrawals.withdrawalDaysNote')}</p>
               </div>
             </div>
 
@@ -288,9 +296,9 @@ export default function WithdrawalsPage() {
                 </svg>
               </div>
               <div>
-                <p className="text-[11px] font-bold text-[#F87171]">Descuento del 8%</p>
-                <p className="text-[10px] text-white/60 mt-0.5">Se aplica un 8% de comision sobre el monto solicitado</p>
-                <p className="text-[9px] text-white/35 mt-0.5">Ejemplo: Retiras $100 → Recibes $92</p>
+                <p className="text-[11px] font-bold text-[#F87171]">{t('withdrawals.discount')}</p>
+                <p className="text-[10px] text-white/60 mt-0.5">{t('withdrawals.discountDesc')}</p>
+                <p className="text-[9px] text-white/35 mt-0.5">{t('withdrawals.discountExample')}</p>
               </div>
             </div>
 
@@ -308,9 +316,9 @@ export default function WithdrawalsPage() {
                 </svg>
               </div>
               <div>
-                <p className="text-[11px] font-bold text-[#FBBF24]">Tiempo de procesamiento</p>
-                <p className="text-[10px] text-white/60 mt-0.5">Tu pago se abonara en 24 a 72 horas habiles</p>
-                <p className="text-[9px] text-white/35 mt-0.5">Recibiras comprobante cuando se complete</p>
+                <p className="text-[11px] font-bold text-[#FBBF24]">{t('withdrawals.processingTime')}</p>
+                <p className="text-[10px] text-white/60 mt-0.5">{t('withdrawals.processingTimeDesc')}</p>
+                <p className="text-[9px] text-white/35 mt-0.5">{t('withdrawals.processingTimeNote')}</p>
               </div>
             </div>
 
@@ -327,8 +335,8 @@ export default function WithdrawalsPage() {
                 </svg>
               </div>
               <div>
-                <p className="text-[11px] font-bold text-[#818CF8]">Requisito</p>
-                <p className="text-[10px] text-white/60 mt-0.5">Debes tener al menos un plan VIRTUS activo</p>
+                <p className="text-[11px] font-bold text-[#818CF8]">{t('withdrawals.requirement')}</p>
+                <p className="text-[10px] text-white/60 mt-0.5">{t('withdrawals.requirementDesc')}</p>
               </div>
             </div>
           </div>
@@ -348,15 +356,19 @@ export default function WithdrawalsPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
               </svg>
               <p className="text-xs font-bold" style={{ color: kycStatus === 'PENDING' ? '#FBBF24' : '#F87171' }}>
-                {kycStatus === 'PENDING' ? 'Verificación en revisión' : kycStatus === 'REJECTED' ? 'Verificación rechazada' : 'Verificación requerida'}
+                {kycStatus === 'PENDING'
+                  ? t('withdrawals.kycPendingTitle')
+                  : kycStatus === 'REJECTED'
+                  ? t('withdrawals.kycRejectedTitle')
+                  : t('withdrawals.kycRequiredTitle')}
               </p>
             </div>
             <p className="text-[10px] text-white/60">
               {kycStatus === 'PENDING'
-                ? 'Tu identidad está siendo revisada. Podrás retirar una vez aprobada.'
+                ? t('withdrawals.kycPending')
                 : kycStatus === 'REJECTED'
-                ? 'Tu verificación fue rechazada. Vuelve a enviar tus documentos.'
-                : 'Para solicitar retiros debes verificar tu identidad primero.'}
+                ? t('withdrawals.kycRejected')
+                : t('withdrawals.kycNotVerified')}
             </p>
             <button
               onClick={() => router.push('/kyc')}
@@ -367,7 +379,7 @@ export default function WithdrawalsPage() {
                 color: kycStatus === 'PENDING' ? '#FBBF24' : '#34D399',
               }}
             >
-              {kycStatus === 'PENDING' ? 'Ver estado de verificación' : 'Verificar identidad ahora'}
+              {kycStatus === 'PENDING' ? t('withdrawals.kycCheckStatus') : t('withdrawals.kycGoVerify')}
             </button>
           </div>
         )}
@@ -375,14 +387,14 @@ export default function WithdrawalsPage() {
         {/* Monto libre */}
         <div className="glass-card !p-4" style={{ opacity: kycStatus !== 'APPROVED' ? 0.4 : 1, pointerEvents: kycStatus !== 'APPROVED' ? 'none' : 'auto' }}>
           <p className="text-[10px] font-bold text-[#34D399] text-center mb-3 uppercase tracking-widest">
-            Ingresa el Monto
+            {t('withdrawals.enterAmount')}
           </p>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-3">
             <div className="space-y-1">
               <Input
-                label="Monto a retirar (mínimo $1)"
+                label={t('withdrawals.amountLabel')}
                 type="number"
                 step="0.01"
                 min="1"
@@ -397,15 +409,15 @@ export default function WithdrawalsPage() {
                   border: '1px solid rgba(52, 211, 153, 0.15)',
                 }}>
                   <div className="flex justify-between text-[10px] mb-1">
-                    <span className="text-white/50">Monto solicitado</span>
+                    <span className="text-white/50">{t('withdrawals.requested')}</span>
                     <span className="text-white font-medium">${parseFloat(amount).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-[10px] mb-1">
-                    <span className="text-white/50">Descuento (8%)</span>
+                    <span className="text-white/50">{t('withdrawals.discountLabel')}</span>
                     <span className="text-[#F87171] font-medium">-${(parseFloat(amount) * 0.08).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-xs pt-1.5 border-t border-white/10">
-                    <span className="text-white/70 font-medium">Recibes</span>
+                    <span className="text-white/70 font-medium">{t('withdrawals.youReceive')}</span>
                     <span className="text-[#4ADE80] font-bold">${calculateFinalAmount(parseFloat(amount)).toFixed(2)}</span>
                   </div>
                 </div>
@@ -413,17 +425,17 @@ export default function WithdrawalsPage() {
             </div>
 
             <Input
-              label="ID de Billetera"
+              label={t('withdrawals.binanceId')}
               type="text"
               value={binanceId}
               onChange={(e) => setBinanceId(e.target.value)}
-              placeholder="Tu ID o dirección de billetera"
+              placeholder={t('withdrawals.binancePlaceholder')}
               required
             />
 
             <div className="space-y-1.5">
               <label className="text-[10px] text-white/60 font-medium ml-1 uppercase tracking-wider">
-                QR de tu Billeta para recibir <span className="text-red-400">*</span>
+                {t('withdrawals.qrLabel')} <span className="text-red-400">*</span>
               </label>
               <div
                 className="relative rounded-xl p-3 text-center cursor-pointer transition-all"
@@ -447,8 +459,8 @@ export default function WithdrawalsPage() {
                       className="w-16 h-16 object-contain rounded-lg border border-white/10"
                     />
                     <div className="text-left">
-                      <p className="text-[10px] text-[#4ADE80] font-medium">QR cargado</p>
-                      <p className="text-[9px] text-white/40">Toca para cambiar</p>
+                      <p className="text-[10px] text-[#4ADE80] font-medium">{t('withdrawals.qrLoaded')}</p>
+                      <p className="text-[9px] text-white/40">{t('withdrawals.qrChange')}</p>
                     </div>
                   </div>
                 ) : (
@@ -456,7 +468,7 @@ export default function WithdrawalsPage() {
                     <svg className="w-6 h-6 mx-auto text-white/20 mb-1" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
                     </svg>
-                    <p className="text-[10px] text-white/40">Sube tu QR de tu Billitera</p>
+                    <p className="text-[10px] text-white/40">{t('withdrawals.uploadQr')}</p>
                   </div>
                 )}
               </div>
@@ -484,7 +496,7 @@ export default function WithdrawalsPage() {
                 boxShadow: loading ? 'none' : '0 0 16px rgba(52, 211, 153, 0.15)',
               }}
             >
-              {loading ? 'Procesando...' : 'Solicitar Retiro'}
+              {loading ? t('withdrawals.submitting') : t('withdrawals.submit')}
             </button>
           </form>
         </div>
@@ -493,7 +505,7 @@ export default function WithdrawalsPage() {
         <div>
           <div className="flex items-center gap-2 mb-3">
             <div className="w-1.5 h-1.5 rounded-full bg-[#34D399]" />
-            <h2 className="text-xs font-bold text-[#34D399] uppercase tracking-wider">Historial de Retiros</h2>
+            <h2 className="text-xs font-bold text-[#34D399] uppercase tracking-wider">{t('withdrawals.history')}</h2>
           </div>
 
           {withdrawals.length === 0 ? (
@@ -501,7 +513,7 @@ export default function WithdrawalsPage() {
               <svg className="w-8 h-8 mx-auto text-white/15 mb-2" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
               </svg>
-              <p className="text-[11px] text-white/40">No tienes retiros registrados</p>
+              <p className="text-[11px] text-white/40">{t('withdrawals.noHistory')}</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -514,7 +526,7 @@ export default function WithdrawalsPage() {
                       {w.status === 'PAID' && w.receipt_url && (
                         <img
                           src={w.receipt_url}
-                          alt="Comprobante"
+                          alt="receipt"
                           onContextMenu={(e) => e.preventDefault()}
                           onDragStart={(e) => e.preventDefault()}
                           className="w-14 h-14 object-cover rounded-lg border border-white/10 select-none flex-shrink-0"
@@ -544,14 +556,14 @@ export default function WithdrawalsPage() {
                           </span>
                         </div>
                         <p className="text-[10px] text-white/40 mt-0.5">
-                          {new Date(w.created_at).toLocaleDateString('es-ES', {
+                          {new Date(w.created_at).toLocaleDateString(dateLocale, {
                             day: '2-digit',
                             month: 'short',
                             year: 'numeric',
                           })}
                         </p>
                         {w.status === 'PAID' && w.receipt_url && (
-                          <p className="text-[9px] text-[#4ADE80] mt-0.5">Comprobante adjunto</p>
+                          <p className="text-[9px] text-[#4ADE80] mt-0.5">{t('withdrawals.receiptAttached')}</p>
                         )}
                       </div>
                     </div>
@@ -564,7 +576,7 @@ export default function WithdrawalsPage() {
       </div>
 
       <p className="mt-8 text-[10px] text-white/20 text-center px-4">
-        © 2026 Virtus. Todos los derechos reservados. El contenido y la marca están protegidos por la legislación vigente.
+        {t('common.copyright')}
       </p>
 
       <BottomNav />
