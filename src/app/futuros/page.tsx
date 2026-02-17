@@ -1,16 +1,13 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ui/Toast'
-import * as echarts from 'echarts'
 import {
   ArrowUp,
   Plus,
   Minus,
-  CandlestickChart,
   ArrowLeftRight,
-  MoreHorizontal,
   FileText,
   CheckCircle2,
   ChevronDown,
@@ -87,10 +84,8 @@ export default function FuturosPage() {
   // Inputs
   const [tradeAmount, setTradeAmount] = useState<number>(0)
   const [tradePrice, setTradePrice] = useState<string>('')
-  const [tradeLeverage, setTradeLeverage] = useState<number>(20) // Use state for leverage if we want to change it
-  const [orderType, setOrderType] = useState('Limit')
+  const [tradeLeverage, setTradeLeverage] = useState<number>(20)
   const [sliderValue, setSliderValue] = useState(0)
-  const [isCross, setIsCross] = useState(true)
 
   // Checkboxes
   const [tpSl, setTpSl] = useState(false)
@@ -194,7 +189,14 @@ export default function FuturosPage() {
           if (balRes.ok) { const d = await balRes.json(); setBalance(d.balance) }
         }
 
-        setActiveOrders(mapActiveOrders(data.orders))
+        // Preserve calculated PNL — don't reset to 0 on every poll
+        setActiveOrders(prev => {
+          const freshMapped = mapActiveOrders(data.orders)
+          return freshMapped.map(o => {
+            const existing = prev.find(e => String(e.id) === String(o.id))
+            return existing ? { ...o, pnl: existing.pnl } : o
+          })
+        })
         activeOrderIdsRef.current = newIds
       } catch { /* silent */ }
     }
@@ -204,13 +206,21 @@ export default function FuturosPage() {
   }, [])
 
   // --- Real-time PNL + Auto-close (TP / SL / Liquidation) ---
+  // Only applies to MANUAL orders — signal orders are handled by their own auto-close API
   useEffect(() => {
     const interval = setInterval(() => {
       if (activeOrders.length === 0 || currentPrice === 0) return
 
+      // Only evaluate orders for the current pair — other pairs need their own WebSocket price
+      const manualOrders = activeOrders.filter(o => !o.signalId && o.pair === currentPair)
+      const signalOrders = activeOrders.filter(o => o.signalId)
+      const otherPairOrders = activeOrders.filter(o => !o.signalId && o.pair !== currentPair)
+
+      if (manualOrders.length === 0) return
+
       const autoCloseIds: { id: string; reason: string }[] = []
 
-      const updated = activeOrders.map(order => {
+      const updatedManual = manualOrders.map(order => {
         let pnlPercent = 0
         if (order.type === 'CALL') {
           pnlPercent = ((currentPrice - order.entryPrice) / order.entryPrice) * order.leverage
@@ -237,7 +247,7 @@ export default function FuturosPage() {
         return { ...order, pnl }
       })
 
-      setActiveOrders(updated)
+      setActiveOrders([...signalOrders, ...otherPairOrders, ...updatedManual])
 
       // Auto-close triggered positions
       autoCloseIds.forEach(({ id, reason }) => handleCloseOrder(id, reason))
@@ -311,7 +321,7 @@ export default function FuturosPage() {
           entryPrice: currentPrice, startTime: new Date().toLocaleTimeString(), status: 'ACTIVE',
           pnl: 0, tp: tpSl && tpValue ? parseFloat(tpValue) : null, sl: tpSl && slValue ? parseFloat(slValue) : null
         }
-        setActiveOrders([newOrder, ...activeOrders])
+        setActiveOrders(prev => [newOrder, ...prev])
         setBalance(prev => prev - tradeAmount)
         setShowConfirm(false)
       } else { alert(t('futuros.errorOpening')) }
@@ -363,11 +373,12 @@ export default function FuturosPage() {
 
   // --- Close All Orders ---
   const closeAllOrders = async () => {
-    if (activeOrders.length === 0) return
+    const manualOrders = activeOrders.filter(o => !o.signalId)
+    if (manualOrders.length === 0) return
     setIsClosingAll(true)
     const token = getToken()
     let wins = 0, losses = 0
-    for (const order of activeOrders) {
+    for (const order of manualOrders) {
       try {
         const symbol = order.pair.replace('/', '').toUpperCase()
         let closePrice = currentPrice
@@ -396,7 +407,8 @@ export default function FuturosPage() {
     ])
     if (histRes.ok) { const d = await histRes.json(); setHistoryOrders(mapHistoryOrders(d.orders)) }
     if (balRes.ok) { const d = await balRes.json(); setBalance(d.balance) }
-    setActiveOrders([])
+    // Keep signal orders — only clear manual ones
+    setActiveOrders(prev => prev.filter(o => o.signalId))
     if (wins > 0 || losses > 0) showToast(`Cerradas: ${wins} WIN · ${losses} LOSS`, wins > losses ? 'success' : 'error')
     setIsClosingAll(false)
   }
@@ -405,17 +417,17 @@ export default function FuturosPage() {
   const priceChangePercent = ((candleData.length > 0 ? (currentPrice - candleData[0].open) / candleData[0].open : 0) * 100).toFixed(2)
   const isPositive = parseFloat(priceChangePercent) >= 0
 
-  const generateOrderBook = (price: number) => {
-    if (!price) return { asks: [], bids: [] }
-    const asks = [], bids = []
-    const spread = price * 0.0001
+  const { asks, bids } = useMemo(() => {
+    if (!currentPrice) return { asks: [], bids: [] }
+    const _asks: { price: number; amount: string; width: number }[] = []
+    const _bids: { price: number; amount: string; width: number }[] = []
+    const spread = currentPrice * 0.0001
     for (let i = 0; i < 7; i++) {
-      asks.push({ price: price + spread * (i + 1), amount: (Math.random() * 0.5).toFixed(3) })
-      bids.push({ price: price - spread * (i + 1), amount: (Math.random() * 0.5).toFixed(3) })
+      _asks.push({ price: currentPrice + spread * (i + 1), amount: (Math.random() * 0.5).toFixed(3), width: Math.floor(Math.random() * 60) })
+      _bids.push({ price: currentPrice - spread * (i + 1), amount: (Math.random() * 0.5).toFixed(3), width: Math.floor(Math.random() * 60) })
     }
-    return { asks: asks.reverse(), bids }
-  }
-  const { asks, bids } = generateOrderBook(currentPrice)
+    return { asks: _asks.reverse(), bids: _bids }
+  }, [currentPrice])
 
   return (
     <div className="min-h-screen bg-[#161A1E] text-[#EAECEF] font-sans pb-20 text-sm">
@@ -500,7 +512,7 @@ export default function FuturosPage() {
               <input
                 className="bg-transparent text-center text-[#EAECEF] text-sm font-bold w-full outline-none"
                 value={tradeAmount}
-                onChange={e => setTradeAmount(parseFloat(e.target.value))}
+                onChange={e => setTradeAmount(parseFloat(e.target.value) || 0)}
                 placeholder={t('futuros.amount')}
               />
               <div className="text-[9px] text-[#5E6673]">{t('futuros.amountUsdt')}</div>
@@ -656,7 +668,7 @@ export default function FuturosPage() {
               <div key={`ask-${i}`} className="flex justify-between text-xs relative h-4 items-center">
                 <span className="text-[#F6465D] z-10 font-medium">{ask.price.toFixed(1)}</span>
                 <span className="text-[#EAECEF] z-10 opacity-80">{ask.amount}</span>
-                <div className="absolute right-0 top-0 bottom-0 bg-[#F6465D]/10 transition-all duration-300" style={{ width: `${Math.random() * 60}%` }}></div>
+                <div className="absolute right-0 top-0 bottom-0 bg-[#F6465D]/10 transition-all duration-300" style={{ width: `${ask.width}%` }}></div>
               </div>
             ))}
           </div>
@@ -673,7 +685,7 @@ export default function FuturosPage() {
               <div key={`bid-${i}`} className="flex justify-between text-xs relative h-4 items-center">
                 <span className="text-[#0ECB81] z-10 font-medium">{bid.price.toFixed(1)}</span>
                 <span className="text-[#EAECEF] z-10 opacity-80">{bid.amount}</span>
-                <div className="absolute right-0 top-0 bottom-0 bg-[#0ECB81]/10 transition-all duration-300" style={{ width: `${Math.random() * 60}%` }}></div>
+                <div className="absolute right-0 top-0 bottom-0 bg-[#0ECB81]/10 transition-all duration-300" style={{ width: `${bid.width}%` }}></div>
               </div>
             ))}
           </div>
@@ -723,7 +735,7 @@ export default function FuturosPage() {
           </label>
           <button
             onClick={closeAllOrders}
-            disabled={isClosingAll || activeOrders.length === 0}
+            disabled={isClosingAll || activeOrders.filter(o => !o.signalId).length === 0}
             className="bg-[#2B3139] text-[#EAECEF] text-[10px] px-3 py-1 rounded disabled:opacity-40"
           >
             {isClosingAll ? '...' : 'Cerrar todo'}
