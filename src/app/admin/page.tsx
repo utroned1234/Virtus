@@ -555,13 +555,13 @@ export default function AdminPage() {
     try {
       const tk = getToken()
       if (!tk) { router.push('/login'); return }
-      const res = await fetch(`/api/admin/kyc?status=${filter}`, {
+      const res = await fetch(`/api/admin/kyc?filter=${filter}`, {
         headers: { Authorization: `Bearer ${tk}` },
       })
       if (res.status === 401 || res.status === 403) { handleAuthRedirect(res.status); return }
       if (res.ok) {
         const data = await res.json()
-        setKycUsers(data)
+        setKycUsers(data.users ?? [])
       }
     } catch { /* silent */ }
     finally { setKycLoading(false) }
