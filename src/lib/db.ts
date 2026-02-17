@@ -9,19 +9,22 @@ function createPrismaClient() {
   })
 }
 
+const isNewInstance = !globalForPrisma.prisma
+
 export const prisma = globalForPrisma.prisma || createPrismaClient()
 
 if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma
 }
 
-// Graceful shutdown
-if (typeof global !== 'undefined' && !globalForPrisma.prisma) {
+// Graceful shutdown: solo registrar handlers si es una instancia nueva
+// (evita registrar múltiples listeners en hot-reload de desarrollo)
+if (isNewInstance) {
   process.on('exit', () => {
-    globalForPrisma.prisma?.$disconnect()
+    prisma.$disconnect()
   })
   process.on('SIGINT', () => {
-    globalForPrisma.prisma?.$disconnect().then(() => process.exit(0))
+    prisma.$disconnect().then(() => process.exit(0))
   })
 }
 

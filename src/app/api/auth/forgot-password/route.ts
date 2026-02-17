@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { generateResetToken } from '@/lib/utils'
+import { sendPasswordResetEmail } from '@/lib/email'
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,15 +13,16 @@ export async function POST(req: NextRequest) {
 
     const user = await prisma.user.findUnique({ where: { email } })
 
+    // Siempre responder igual aunque el email no exista
+    // (evita enumerar qué correos están registrados)
     if (!user) {
-      return NextResponse.json(
-        { error: 'El correo no está registrado' },
-        { status: 404 }
-      )
+      return NextResponse.json({
+        message: 'Si el correo está registrado, recibirás un enlace de recuperación.',
+      })
     }
 
     const token = generateResetToken()
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000) // 1 hora
 
     await prisma.passwordReset.create({
       data: {
@@ -31,19 +33,20 @@ export async function POST(req: NextRequest) {
     })
 
     const origin =
-      req.nextUrl?.origin ||
-      req.headers.get('origin') ||
       process.env.NEXT_PUBLIC_APP_URL ||
-      ''
+      req.headers.get('origin') ||
+      `https://${req.headers.get('host')}`
+
     const resetLink = `${origin}/reset-password?token=${token}`
 
-    // In production, send email with reset link
-    console.log(`Reset token for ${email}: ${token}`)
-    console.log(`Reset link: ${resetLink}`)
+    await sendPasswordResetEmail({
+      to: user.email,
+      fullName: user.full_name,
+      resetLink,
+    })
 
     return NextResponse.json({
-      message: 'Se ha enviado un enlace de recuperación a tu email',
-      reset_link: resetLink,
+      message: 'Si el correo está registrado, recibirás un enlace de recuperación.',
     })
   } catch (error) {
     console.error('Forgot password error:', error)

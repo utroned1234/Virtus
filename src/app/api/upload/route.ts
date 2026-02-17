@@ -20,6 +20,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No se proporcionó archivo' }, { status: 400 })
     }
 
+    // Validar tipo de archivo: solo imágenes
+    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      return NextResponse.json(
+        { error: 'Tipo de archivo no permitido. Solo se aceptan imágenes (jpg, png, webp, gif).' },
+        { status: 400 }
+      )
+    }
+
+    // Validar tamaño: máximo 10 MB
+    const MAX_SIZE_BYTES = 10 * 1024 * 1024
+    if (file.size > MAX_SIZE_BYTES) {
+      return NextResponse.json(
+        { error: 'El archivo supera el límite de 10 MB.' },
+        { status: 400 }
+      )
+    }
+
     const fileExt = file.name.split('.').pop()
     const fileName = `${authResult.user.userId}_${Date.now()}.${fileExt}`
     const filePath = `uploads/${fileName}`

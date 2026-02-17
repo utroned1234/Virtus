@@ -8,7 +8,8 @@ export function generateUserCode(): string {
 }
 
 export function generateResetToken(): string {
-  return Math.random().toString(36).substring(2) + Date.now().toString(36)
+  const { randomBytes } = require('crypto')
+  return randomBytes(32).toString('hex')
 }
 
 export function formatCurrency(amount: number): string {

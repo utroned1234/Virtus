@@ -15,7 +15,12 @@ export function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/tabla') ||
     request.nextUrl.pathname.startsWith('/withdrawals') ||
     request.nextUrl.pathname.startsWith('/my-purchases') ||
-    request.nextUrl.pathname.startsWith('/admin')
+    request.nextUrl.pathname.startsWith('/admin') ||
+    request.nextUrl.pathname.startsWith('/futuros') ||
+    request.nextUrl.pathname.startsWith('/kyc') ||
+    request.nextUrl.pathname.startsWith('/mercado') ||
+    request.nextUrl.pathname.startsWith('/network') ||
+    request.nextUrl.pathname.startsWith('/trading')
 
   if (isProtectedPage && !token) {
     return NextResponse.redirect(new URL('/login', request.url))

@@ -11,6 +11,17 @@ export async function POST(req: NextRequest) {
     try {
         const { orderId, closePrice, reason } = await req.json()
 
+        // Validar closePrice: debe ser número positivo y finito
+        if (
+          closePrice === undefined ||
+          closePrice === null ||
+          typeof closePrice !== 'number' ||
+          !isFinite(closePrice) ||
+          closePrice <= 0
+        ) {
+          return NextResponse.json({ error: 'Precio de cierre inválido' }, { status: 400 })
+        }
+
         // 1. Fetch order
         const order = await prisma.futureOrder.findFirst({
             where: {

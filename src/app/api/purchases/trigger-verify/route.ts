@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/auth/middleware'
 
 // Internal proxy: triggers verification without exposing CRON_VERIFY_SECRET to the client
 export async function POST(req: NextRequest) {
+  const authResult = requireAdmin(req)
+  if ('error' in authResult) {
+    return NextResponse.json({ error: authResult.error }, { status: authResult.status })
+  }
+
   try {
     const secret = process.env.CRON_VERIFY_SECRET
     if (!secret) {

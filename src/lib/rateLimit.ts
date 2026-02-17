@@ -7,6 +7,17 @@ type RateLimitEntry = {
 
 const rateLimitStore = new Map<string, RateLimitEntry>()
 
+// Limpiar entradas expiradas cada 5 minutos para evitar memory leak
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000
+setInterval(() => {
+  const now = Date.now()
+  for (const [key, entry] of rateLimitStore.entries()) {
+    if (entry.resetAt <= now) {
+      rateLimitStore.delete(key)
+    }
+  }
+}, CLEANUP_INTERVAL_MS).unref()
+
 export function getClientIp(req: NextRequest) {
   const forwarded = req.headers.get('x-forwarded-for')
   if (forwarded) {
