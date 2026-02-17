@@ -189,6 +189,11 @@ const translations: Record<LanguageCode, any> = {
       stocks: 'Stocks',
       commodities: 'Commodities',
       markets: 'Markets',
+      asset: 'Asset',
+      price: 'Price',
+      loading: 'Loading market...',
+      noConnection: 'No market connection.\nRetrying every 10s...',
+      noData: 'No data available',
     },
     trading: {
       active: 'Active',
@@ -610,6 +615,11 @@ const translations: Record<LanguageCode, any> = {
       stocks: 'Acciones',
       commodities: 'Materias Primas',
       markets: 'Mercados',
+      asset: 'Activo',
+      price: 'Precio',
+      loading: 'Cargando mercado...',
+      noConnection: 'Sin conexión con el mercado.\nReintentando cada 10s...',
+      noData: 'No hay datos disponibles',
     },
     trading: {
       active: 'Activas',

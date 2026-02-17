@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { TrendingUp } from 'lucide-react'
+import { useLanguage } from '@/context/LanguageContext'
 
 interface Ticker {
     symbol: string
@@ -29,6 +30,7 @@ function saveToStorage(cat: string, data: Ticker[]) {
 }
 
 export default function MarketList({ category }: { category: MarketCategory }) {
+    const { t } = useLanguage()
     const [data, setData] = useState<Ticker[]>([])
     const [loading, setLoading] = useState(true)
     const [fetchError, setFetchError] = useState(false)
@@ -154,25 +156,25 @@ export default function MarketList({ category }: { category: MarketCategory }) {
         <div className="pb-24">
             {/* Header Columns */}
             <div className="grid grid-cols-3 text-[10px] text-white/40 px-3 py-2 uppercase tracking-wider sticky top-[56px] bg-[#060B10] z-20 border-b border-white/5">
-                <div className="text-left">Activo</div>
-                <div className="text-right pr-2">Precio</div>
+                <div className="text-left">{t('mercado.asset')}</div>
+                <div className="text-right pr-2">{t('mercado.price')}</div>
                 <div className="text-right">24h</div>
             </div>
 
             {loading ? (
                 <div className="py-20 flex flex-col items-center justify-center text-white/30 space-y-3">
                     <div className="w-6 h-6 border-2 border-[#34D399] border-t-transparent rounded-full animate-spin"></div>
-                    <span className="text-xs animate-pulse">Cargando mercado...</span>
+                    <span className="text-xs animate-pulse">{t('mercado.loading')}</span>
                 </div>
             ) : fetchError ? (
                 <div className="py-16 flex flex-col items-center justify-center text-white/30 space-y-3">
                     <span className="text-2xl">📡</span>
-                    <span className="text-xs text-center px-6">Sin conexión con el mercado.<br />Reintentando cada 10s...</span>
+                    <span className="text-xs text-center px-6">{t('mercado.noConnection').split('\n').map((line, i) => i === 0 ? line : <><br key={i} />{line}</>)}</span>
                 </div>
             ) : (
                 <div className="space-y-0">
                     {data.length === 0 ? (
-                        <div className="py-10 text-center text-white/30 text-xs">No hay datos disponibles</div>
+                        <div className="py-10 text-center text-white/30 text-xs">{t('mercado.noData')}</div>
                     ) : (data.map((item) => {
                         const change = parseFloat(item.priceChangePercent)
                         const isPositive = change >= 0
