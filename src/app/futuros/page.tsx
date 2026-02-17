@@ -1,23 +1,20 @@
 'use client'
 
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ui/Toast'
 import * as echarts from 'echarts'
 import {
   ArrowUp,
-  ArrowDown,
-  Wallet,
-  Activity,
-  Menu,
-  ChevronDown,
   Plus,
   Minus,
-  Calculator,
   CandlestickChart,
   ArrowLeftRight,
   MoreHorizontal,
   FileText,
-  CheckCircle2
+  CheckCircle2,
+  ChevronDown,
+  Activity
 } from 'lucide-react'
 import BottomNav from '../../components/ui/BottomNav'
 import { useLanguage } from '@/context/LanguageContext'
@@ -63,11 +60,9 @@ const PAIRS = [
 export default function FuturosPage() {
   const { t } = useLanguage()
   const { showToast } = useToast()
-  const chartRef = useRef<HTMLDivElement>(null)
-  const chartInstance = useRef<echarts.ECharts | null>(null)
+  const router = useRouter()
 
   // WebSocket Refs
-  const wsKline = useRef<WebSocket | null>(null)
   const wsTrade = useRef<WebSocket | null>(null)
 
   // Polling refs
@@ -86,13 +81,13 @@ export default function FuturosPage() {
   // UI State
   const [activeTab, setActiveTab] = useState<'positions' | 'orders' | 'bots'>('positions')
   const [showConfirm, setShowConfirm] = useState(false)
-  const [pendingType, setPendingType] = useState<'CALL' | 'PUT' | null>(null)
+  const [pendingType, setPendingType] = useState<'CALL' | 'PUT' | null>('CALL')
   const [showSidebar, setShowSidebar] = useState(false)
 
   // Inputs
   const [tradeAmount, setTradeAmount] = useState<number>(0)
   const [tradePrice, setTradePrice] = useState<string>('')
-  const [tradeLeverage, setTradeLeverage] = useState<number>(20)
+  const [tradeLeverage, setTradeLeverage] = useState<number>(20) // Use state for leverage if we want to change it
   const [orderType, setOrderType] = useState('Limit')
   const [sliderValue, setSliderValue] = useState(0)
   const [isCross, setIsCross] = useState(true)
@@ -107,6 +102,7 @@ export default function FuturosPage() {
 
   // Close state
   const [closingOrderId, setClosingOrderId] = useState<string | null>(null)
+  const [isClosingAll, setIsClosingAll] = useState(false)
 
   // --- Helper ---
   const getToken = () => document.cookie.split('; ').find(row => row.startsWith('auth_token='))?.split('=')[1]
@@ -207,6 +203,49 @@ export default function FuturosPage() {
     return () => clearInterval(intervalId)
   }, [])
 
+  // --- Real-time PNL + Auto-close (TP / SL / Liquidation) ---
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (activeOrders.length === 0 || currentPrice === 0) return
+
+      const autoCloseIds: { id: string; reason: string }[] = []
+
+      const updated = activeOrders.map(order => {
+        let pnlPercent = 0
+        if (order.type === 'CALL') {
+          pnlPercent = ((currentPrice - order.entryPrice) / order.entryPrice) * order.leverage
+        } else {
+          pnlPercent = ((order.entryPrice - currentPrice) / order.entryPrice) * order.leverage
+        }
+        const pnl = order.amount * pnlPercent
+
+        // Check TP
+        if (order.tp && (
+          (order.type === 'CALL' && currentPrice >= order.tp) ||
+          (order.type === 'PUT' && currentPrice <= order.tp)
+        )) { autoCloseIds.push({ id: String(order.id), reason: 'TP' }) }
+        // Check SL
+        else if (order.sl && (
+          (order.type === 'CALL' && currentPrice <= order.sl) ||
+          (order.type === 'PUT' && currentPrice >= order.sl)
+        )) { autoCloseIds.push({ id: String(order.id), reason: 'SL' }) }
+        // Liquidation (-100%)
+        else if (pnl <= -order.amount) {
+          autoCloseIds.push({ id: String(order.id), reason: 'LIQUIDATION' })
+        }
+
+        return { ...order, pnl }
+      })
+
+      setActiveOrders(updated)
+
+      // Auto-close triggered positions
+      autoCloseIds.forEach(({ id, reason }) => handleCloseOrder(id, reason))
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [activeOrders, currentPrice])
+
   // --- WebSocket & Data ---
   const getBinanceSymbol = (p: string) => p.replace('/', '').toLowerCase()
 
@@ -279,15 +318,15 @@ export default function FuturosPage() {
     } catch { alert(t('futuros.errorConnection')) }
   }
 
-  // --- Close Order (user manual close) ---
-  const handleCloseOrder = async (orderId: string) => {
+  // --- Close Order (user manual close or auto-close) ---
+  const handleCloseOrder = async (orderId: string, reason: string = 'MANUAL') => {
     setClosingOrderId(String(orderId))
     try {
       const token = getToken()
-      // Fetch the real-time price of the ORDER's pair (not the currently displayed pair)
+      // For auto-close (TP/SL/LIQUIDATION) use currentPrice directly; for manual fetch real price
       const order = activeOrders.find(o => String(o.id) === String(orderId))
       let closePrice = currentPrice
-      if (order) {
+      if (order && reason === 'MANUAL') {
         try {
           const symbol = order.pair.replace('/', '').toUpperCase()
           const priceRes = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`)
@@ -298,7 +337,7 @@ export default function FuturosPage() {
       const res = await fetch('/api/futuros/close', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ orderId, closePrice, reason: 'MANUAL' }),
+        body: JSON.stringify({ orderId, closePrice, reason }),
       })
       const data = await res.json()
       if (res.ok) {
@@ -322,6 +361,46 @@ export default function FuturosPage() {
     finally { setClosingOrderId(null) }
   }
 
+  // --- Close All Orders ---
+  const closeAllOrders = async () => {
+    if (activeOrders.length === 0) return
+    setIsClosingAll(true)
+    const token = getToken()
+    let wins = 0, losses = 0
+    for (const order of activeOrders) {
+      try {
+        const symbol = order.pair.replace('/', '').toUpperCase()
+        let closePrice = currentPrice
+        try {
+          const priceRes = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`)
+          if (priceRes.ok) { const pd = await priceRes.json(); closePrice = parseFloat(pd.price) }
+        } catch { /* fallback */ }
+        if (!closePrice) continue
+        const res = await fetch('/api/futuros/close', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ orderId: order.id, closePrice, reason: 'MANUAL' }),
+        })
+        if (res.ok) {
+          const data = await res.json()
+          data.order.status === 'WIN' ? wins++ : losses++
+          activeOrderIdsRef.current.delete(String(order.id))
+        }
+      } catch { /* continue with next */ }
+    }
+    // Refresh all after closing
+    const token2 = getToken()
+    const [histRes, balRes] = await Promise.all([
+      fetch('/api/futuros/order?status=CLOSED', { headers: { Authorization: `Bearer ${token2}` } }),
+      fetch('/api/user/balance', { headers: { Authorization: `Bearer ${token2}` } }),
+    ])
+    if (histRes.ok) { const d = await histRes.json(); setHistoryOrders(mapHistoryOrders(d.orders)) }
+    if (balRes.ok) { const d = await balRes.json(); setBalance(d.balance) }
+    setActiveOrders([])
+    if (wins > 0 || losses > 0) showToast(`Cerradas: ${wins} WIN · ${losses} LOSS`, wins > losses ? 'success' : 'error')
+    setIsClosingAll(false)
+  }
+
   // --- UI Helpers ---
   const priceChangePercent = ((candleData.length > 0 ? (currentPrice - candleData[0].open) / candleData[0].open : 0) * 100).toFixed(2)
   const isPositive = parseFloat(priceChangePercent) >= 0
@@ -338,13 +417,6 @@ export default function FuturosPage() {
   }
   const { asks, bids } = generateOrderBook(currentPrice)
 
-  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = parseInt(e.target.value)
-    setSliderValue(val)
-    setTradeAmount(Math.floor((balance * val) / 100))
-  }
-
-
   return (
     <div className="min-h-screen bg-[#161A1E] text-[#EAECEF] font-sans pb-20 text-sm">
 
@@ -360,198 +432,263 @@ export default function FuturosPage() {
           </div>
         </div>
         <div className="flex gap-4 text-[#848E9C]">
-          <CandlestickChart size={20} />
-          <ArrowLeftRight size={20} />
-          <MoreHorizontal size={20} />
+          {/* Custom 2 Candles Icon */}
+          <div onClick={() => router.push(`/futuros/chart?pair=${currentPair}`)} className="cursor-pointer hover:opacity-80">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M17 3V21" stroke="#5E6673" strokeWidth="2" strokeLinecap="round" />
+              <path d="M7 3V21" stroke="#5E6673" strokeWidth="2" strokeLinecap="round" />
+              <rect x="5" y="8" width="4" height="8" rx="1" fill="#0ECB81" />
+              <rect x="15" y="6" width="4" height="8" rx="1" fill="#F6465D" />
+            </svg>
+          </div>
         </div>
       </div>
 
-      {/* Funding & Countdown */}
-      <div className="px-4 flex gap-4 text-[10px] text-[#848E9C] mb-2">
-        <div className="flex-1 flex justify-between border-r border-[#2B3139] pr-2">
-          <span>{t('futuros.funding')}</span>
-          <span className="text-[#F0B90B]">0.0100% / 03:22:45</span>
-        </div>
-      </div>
 
 
-      {/* Main Grid: Order Book & Form */}
-      <div className="grid grid-cols-12 gap-0 px-2">
+      {/* Main Grid: Order Form (Left) & Order Book (Right) */}
+      <div className="grid grid-cols-12 gap-2 px-2 mt-2">
 
-        {/* Left: Order Book */}
-        <div className="col-span-5 pr-1">
-          <div className="flex justify-between text-[10px] text-[#848E9C] mb-1">
-            <span>{t('futuros.price')}</span>
-            <span>{t('futuros.amount')}</span>
-          </div>
-          <div className="flex flex-col gap-[1px]">
-            {asks.map((ask, i) => (
-              <div key={`ask-${i}`} className="flex justify-between text-xs relative h-5 items-center">
-                <span className="text-[#F6465D] z-10">{ask.price.toFixed(1)}</span>
-                <span className="text-[#EAECEF] z-10">{ask.amount}</span>
-                <div className="absolute right-0 top-0 bottom-0 bg-[#F6465D]/10 transition-all duration-300" style={{ width: `${Math.random() * 60}%` }}></div>
-              </div>
-            ))}
+        {/* --- LEFT COLUMN: ORDER FORM --- */}
+        <div className="col-span-7 pr-1">
+
+          {/* Buy/Sell Tabs */}
+          <div className="flex bg-[#2B3139] p-0.5 rounded-lg mb-3">
+            <button
+              onClick={() => setPendingType('CALL')}
+              className={`flex-1 py-1.5 rounded-md text-sm font-bold transition-all ${pendingType === 'CALL' || pendingType === null ? 'bg-[#0ECB81] text-white' : 'text-[#848E9C]'}`}
+            >
+              {t('futuros.buy')}
+            </button>
+            <button
+              onClick={() => setPendingType('PUT')}
+              className={`flex-1 py-1.5 rounded-md text-sm font-bold transition-all ${pendingType === 'PUT' ? 'bg-[#F6465D] text-white' : 'text-[#848E9C]'}`}
+            >
+              {t('futuros.sell')}
+            </button>
           </div>
 
-          <div className={`text-lg font-bold text-center py-2 ${isPositive ? 'text-[#0ECB81]' : 'text-[#F6465D]'}`}>
-            {currentPrice.toFixed(1)}
-            <div className="text-[10px] text-[#848E9C] font-normal">≈ ${currentPrice.toFixed(1)}</div>
-          </div>
-
-          <div className="flex flex-col gap-[1px]">
-            {bids.map((bid, i) => (
-              <div key={`bid-${i}`} className="flex justify-between text-xs relative h-5 items-center">
-                <span className="text-[#0ECB81] z-10">{bid.price.toFixed(1)}</span>
-                <span className="text-[#EAECEF] z-10">{bid.amount}</span>
-                <div className="absolute right-0 top-0 bottom-0 bg-[#0ECB81]/10 transition-all duration-300" style={{ width: `${Math.random() * 60}%` }}></div>
-              </div>
-            ))}
-          </div>
-
-          {/* Depth Bar */}
-          <div className="mt-2 flex h-1 rounded overflow-hidden">
-            <div className="bg-[#0ECB81] w-[63%]"></div>
-            <div className="bg-[#F6465D] w-[37%]"></div>
-          </div>
-          <div className="flex justify-between text-[10px] text-[#848E9C] mt-1">
-            <span>63,29%</span>
-            <span>36,71%</span>
-          </div>
-        </div>
-
-        {/* Right: Order Form */}
-        <div className="col-span-7 pl-2">
-          {/* Mode Buttons */}
-          <div className="flex gap-1 mb-3">
-            <button className="bg-[#2B3139] text-[#EAECEF] text-[10px] font-bold py-1 px-3 rounded flex-1">{t('futuros.crossed')}</button>
-            <button className="bg-[#2B3139] text-[#EAECEF] text-[10px] font-bold py-1 px-3 rounded flex-1">{tradeLeverage}x</button>
-            <button className="bg-[#2B3139] text-[#EAECEF] text-[10px] font-bold py-1 px-3 rounded">S</button>
-          </div>
-
-          <div className="flex justify-between text-[10px] text-[#848E9C] mb-1">
+          {/* Available */}
+          <div className="flex justify-between text-[11px] text-[#848E9C] mb-2 px-1">
             <span>{t('futuros.available')}</span>
-            <span className="text-[#EAECEF] flex items-center gap-1">{balance.toFixed(2)} USDT <Plus size={10} className="bg-[#FCD535] text-black rounded-full p-[1px]" /></span>
+            <span className="text-[#EAECEF] flex items-center gap-1">
+              {balance.toFixed(2)} USDT <ArrowLeftRight size={10} className="text-[#F0B90B]" />
+            </span>
           </div>
 
-          {/* Order Type */}
-          <div className="bg-[#2B3139] rounded px-3 py-2 mb-2 flex justify-between items-center">
-            <span className="text-[#EAECEF] text-xs font-bold">{orderType}</span>
-            <ChevronDown size={14} className="text-[#848E9C]" />
-          </div>
+
 
           {/* Price Input */}
           <div className="flex items-center bg-[#2B3139] rounded mb-2">
-            <button className="p-3 text-[#848E9C]" onClick={() => setTradePrice((parseFloat(tradePrice) - 1).toFixed(1))}><Minus size={14} /></button>
-            <div className="flex-1 text-center">
-              {orderType === 'Market' ? (
-                <span className="text-[#848E9C] text-xs">{t('futuros.marketPrice')}</span>
-              ) : (
-                <input
-                  className="bg-transparent text-center text-[#EAECEF] text-sm font-bold w-full outline-none"
-                  value={tradePrice}
-                  onChange={e => setTradePrice(e.target.value)}
-                />
-              )}
-              {orderType !== 'Market' && <div className="text-[9px] text-[#848E9C]">{t('futuros.priceUsdt')}</div>}
+            <button className="p-3 text-[#848E9C] hover:text-[#EAECEF]" onClick={() => setTradePrice((parseFloat(tradePrice) - 1).toFixed(1))}><Minus size={14} /></button>
+            <div className="flex-1 text-center border-l border-r border-[#161A1E] py-1">
+              <input
+                className="bg-transparent text-center text-[#EAECEF] text-sm font-bold w-full outline-none"
+                value={tradePrice}
+                onChange={e => setTradePrice(e.target.value)}
+                placeholder="Price"
+              />
+              <div className="text-[9px] text-[#5E6673]">Price (USDT)</div>
             </div>
-            <button className="p-3 text-[#848E9C]" onClick={() => setTradePrice((parseFloat(tradePrice) + 1).toFixed(1))}><Plus size={14} /></button>
+            <button className="p-3 text-[#848E9C] hover:text-[#EAECEF]" onClick={() => setTradePrice((parseFloat(tradePrice) + 1).toFixed(1))}><Plus size={14} /></button>
           </div>
 
           {/* Amount Input */}
-          <div className="flex items-center bg-[#2B3139] rounded mb-2">
-            <button className="p-3 text-[#848E9C]" onClick={() => setTradeAmount(Math.max(0, tradeAmount - 10))}><Minus size={14} /></button>
-            <div className="flex-1 text-center py-1">
+          <div className="flex items-center bg-[#2B3139] rounded mb-4">
+            <button className="p-3 text-[#848E9C] hover:text-[#EAECEF]" onClick={() => setTradeAmount(Math.max(0, tradeAmount - 10))}><Minus size={14} /></button>
+            <div className="flex-1 text-center border-l border-r border-[#161A1E] py-1">
               <input
                 className="bg-transparent text-center text-[#EAECEF] text-sm font-bold w-full outline-none"
                 value={tradeAmount}
                 onChange={e => setTradeAmount(parseFloat(e.target.value))}
                 placeholder={t('futuros.amount')}
               />
-              <div className="text-[9px] text-[#848E9C]">{t('futuros.amountUsdt')}</div>
+              <div className="text-[9px] text-[#5E6673]">{t('futuros.amountUsdt')}</div>
             </div>
-            <button className="p-3 text-[#848E9C]" onClick={() => setTradeAmount(tradeAmount + 10)}><Plus size={14} /></button>
+            <button className="p-3 text-[#848E9C] hover:text-[#EAECEF]" onClick={() => setTradeAmount(tradeAmount + 10)}><Plus size={14} /></button>
           </div>
 
-          {/* Diamond Slider */}
-          <div className="relative h-6 mb-4 flex items-center px-1">
-            <div className="absolute left-0 right-0 h-[2px] bg-[#2B3139]"></div>
-            <div className="absolute left-0 h-[2px] bg-[#EAECEF]" style={{ width: `${sliderValue}%` }}></div>
-            {[0, 25, 50, 75, 100].map((step) => (
-              <div
-                key={step}
-                className={`absolute w-3 h-3 rotate-45 border-2 z-10 transition-colors ${sliderValue >= step ? 'bg-[#EAECEF] border-[#EAECEF]' : 'bg-[#161A1E] border-[#848E9C]'}`}
-                style={{ left: `calc(${step}% - 6px)` }}
-                onClick={() => { setSliderValue(step); setTradeAmount(Math.floor((balance * step) / 100)) }}
-              ></div>
-            ))}
+          {/* Leverage Selector */}
+          <div className="flex items-center justify-between bg-[#2B3139] rounded px-3 py-2 mb-4">
+            <span className="text-[11px] text-[#848E9C]">Leverage</span>
+            <div className="flex items-center gap-3 bg-[#161A1E] rounded px-2 py-1">
+              <Minus size={14} className="text-[#848E9C] cursor-pointer hover:text-[#EAECEF]" onClick={() => setTradeLeverage(Math.max(1, tradeLeverage - 1))} />
+              <input
+                className="bg-transparent text-center text-[#EAECEF] text-xs font-bold w-12 outline-none"
+                value={tradeLeverage}
+                onChange={e => setTradeLeverage(Math.min(125, Math.max(1, Number(e.target.value) || 1)))}
+              />
+              <span className="text-[10px] text-[#848E9C]">x</span>
+              <Plus size={14} className="text-[#848E9C] cursor-pointer hover:text-[#EAECEF]" onClick={() => setTradeLeverage(Math.min(125, tradeLeverage + 1))} />
+            </div>
           </div>
 
-          {/* Checkboxes */}
-          <div className="flex flex-col gap-2 mb-4">
-            <label className="flex items-center gap-2 text-[10px] text-[#848E9C] cursor-pointer">
-              <div className={`w-3 h-3 border rounded-sm flex items-center justify-center ${tpSl ? 'bg-[#F0B90B] border-[#F0B90B]' : 'border-[#848E9C]'}`} onClick={() => { setTpSl(!tpSl); if (tpSl) { setTpValue(''); setSlValue('') } }}>
-                {tpSl && <CheckCircle2 size={10} className="text-black" />}
+          {/* Slider */}
+          <div className="relative mb-5 px-1">
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1 h-6 flex items-center">
+                {/* Visual Track */}
+                <div className="absolute left-0 right-0 h-[2px] bg-[#2B3139]"></div>
+                <div className="absolute left-0 h-[2px] bg-[#EAECEF]" style={{ width: `${sliderValue}%` }}></div>
+
+                {/* Points */}
+                {[0, 25, 50, 75, 100].map((step) => (
+                  <div
+                    key={step}
+                    className={`absolute w-2.5 h-2.5 rotate-45 border-2 z-10 transition-colors pointer-events-none ${sliderValue >= step ? 'bg-[#EAECEF] border-[#EAECEF]' : 'bg-[#161A1E] border-[#848E9C]'}`}
+                    style={{ left: `calc(${step}% - 5px)` }}
+                  ></div>
+                ))}
+
+                {/* Range Input for dragging */}
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={sliderValue}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value);
+                    setSliderValue(val);
+                    setTradeAmount(Math.floor((balance * val) / 100));
+                  }}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20 margin-0"
+                />
               </div>
-              TP/SL
-            </label>
+              <div className="text-[10px] text-[#848E9C] font-mono w-8 text-right">{sliderValue}%</div>
+            </div>
+          </div>
 
-            {/* TP/SL Inputs — visible only when checkbox is active */}
+          {/* TP/SL Checkbox & Inputs */}
+          <div className="mb-4">
+            <div className="flex justify-between items-center mb-2">
+              <label className="flex items-center gap-2 text-[11px] text-[#848E9C] cursor-pointer">
+                <div className={`w-3.5 h-3.5 border rounded-sm flex items-center justify-center ${tpSl ? 'bg-[#EAECEF] border-[#EAECEF]' : 'border-[#848E9C]'}`} onClick={() => { setTpSl(!tpSl); if (tpSl) { setTpValue(''); setSlValue('') } }}>
+                  {tpSl && <CheckCircle2 size={12} className="text-black" />}
+                </div>
+                TP/SL
+              </label>
+              <span className="text-[10px] text-[#848E9C]">Avanzado <ChevronDown size={10} className="inline" /></span>
+            </div>
+
             {tpSl && (
-              <div className="flex gap-2 mt-1">
-                <div className="flex-1">
-                  <div className="text-[9px] text-[#0ECB81] mb-1 uppercase tracking-wider">TP Profit</div>
+              <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                {/* Take Profit */}
+                <div className="bg-[#2B3139] rounded px-3 py-1.5 flex items-center justify-between">
+                  <span className="text-[10px] text-[#848E9C]">Take profit</span>
                   <input
                     type="number"
                     value={tpValue}
                     onChange={e => setTpValue(e.target.value)}
-                    placeholder="Price"
-                    className="w-full bg-[#2B3139] text-[#EAECEF] text-xs px-2 py-1.5 rounded border border-[#0ECB81]/40 focus:outline-none focus:border-[#0ECB81]"
-                    style={{ appearance: 'none' }}
+                    placeholder="Precio"
+                    className="bg-transparent text-right text-xs text-[#EAECEF] outline-none w-20"
                   />
+                  <span className="text-[10px] text-[#EAECEF] ml-1">USDT</span>
                 </div>
-                <div className="flex-1">
-                  <div className="text-[9px] text-[#F6465D] mb-1 uppercase tracking-wider">TP Loss</div>
+                {/* Stop Loss */}
+                <div className="bg-[#2B3139] rounded px-3 py-1.5 flex items-center justify-between">
+                  <span className="text-[10px] text-[#848E9C]">Stop loss</span>
                   <input
                     type="number"
                     value={slValue}
                     onChange={e => setSlValue(e.target.value)}
-                    placeholder="Price"
-                    className="w-full bg-[#2B3139] text-[#EAECEF] text-xs px-2 py-1.5 rounded border border-[#F6465D]/40 focus:outline-none focus:border-[#F6465D]"
-                    style={{ appearance: 'none' }}
+                    placeholder="Precio"
+                    className="bg-transparent text-right text-xs text-[#EAECEF] outline-none w-20"
                   />
+                  <span className="text-[10px] text-[#EAECEF] ml-1">USDT</span>
                 </div>
               </div>
             )}
+          </div>
 
-            <div className="flex justify-between items-center">
-              <label className="flex items-center gap-2 text-[10px] text-[#848E9C]">
-                <div className={`w-3 h-3 border rounded-sm flex items-center justify-center ${reduceOnly ? 'bg-[#F0B90B] border-[#F0B90B]' : 'border-[#848E9C]'}`} onClick={() => setReduceOnly(!reduceOnly)}>
-                  {reduceOnly && <CheckCircle2 size={10} className="text-black" />}
-                </div>
-                Reduce only
-              </label>
-              <span className="text-[10px] text-[#848E9C] flex items-center gap-1">GTC <ChevronDown size={10} /></span>
+          {/* Reduce Only Checkbox */}
+          <div className="flex items-center gap-2 mb-4">
+            <div className={`w-3.5 h-3.5 border rounded-sm flex items-center justify-center ${reduceOnly ? 'bg-[#EAECEF] border-[#EAECEF]' : 'border-[#848E9C]'}`} onClick={() => setReduceOnly(!reduceOnly)}>
+              {reduceOnly && <CheckCircle2 size={12} className="text-black" />}
+            </div>
+            <span className="text-[11px] text-[#848E9C]">Reduce Only</span>
+          </div>
+
+          {/* Cost / Max Info */}
+          <div className="flex justify-between text-[11px] text-[#848E9C] mb-4 border-t border-[#2B3139] pt-2">
+            <div className="flex flex-col gap-1">
+              <span>Máx</span>
+              <span>Costo</span>
+            </div>
+            <div className="flex flex-col gap-1 text-right text-[#EAECEF]">
+              <span>{(balance / (parseFloat(tradePrice) || 1) * tradeLeverage).toFixed(4)} {currentPair.split('/')[0]}</span>
+              <span>0.00 USDT</span>
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => { setPendingType('CALL'); setShowConfirm(true) }}
-              className="flex-1 bg-[#0ECB81] py-2 rounded text-white font-bold text-sm"
-            >
-              {t('futuros.buy')}
-              <div className="text-[9px] font-normal opacity-80">Long</div>
-            </button>
-            <button
-              onClick={() => { setPendingType('PUT'); setShowConfirm(true) }}
-              className="flex-1 bg-[#F6465D] py-2 rounded text-white font-bold text-sm"
-            >
-              {t('futuros.sell')}
-              <div className="text-[9px] font-normal opacity-80">Short</div>
-            </button>
+
+          {/* BIG ACTION BUTTON */}
+          <button
+            onClick={() => { setShowConfirm(true) }}
+            className={`w-full py-3 rounded-lg text-white font-bold text-base transition-colors ${pendingType === 'PUT' ? 'bg-[#F6465D] hover:bg-[#F6465D]/90' : 'bg-[#0ECB81] hover:bg-[#0ECB81]/90'}`}
+          >
+            {pendingType === 'PUT' ? 'Vender/Short' : 'Comprar/Long'}
+          </button>
+
+        </div>
+
+
+        {/* --- RIGHT COLUMN: ORDER BOOK --- */}
+        <div className="col-span-5 pl-1 flex flex-col">
+
+          {/* Funding Header */}
+          <div className="mb-2 text-[10px] text-[#848E9C] flex justify-between items-start">
+            <div className="flex flex-col">
+              <span>Financiación (8 h)/Cuenta</span>
+              <span>regresiva</span>
+              <span className="text-[#F0B90B] mt-0.5">0.0036%/01:43:02</span>
+            </div>
           </div>
+
+          <div className="flex justify-between text-[10px] text-[#848E9C] mb-1">
+            <span>{t('futuros.price')}</span>
+            <span>{t('futuros.amount')}</span>
+          </div>
+
+          {/* Asks (Red) */}
+          <div className="flex flex-col gap-[1px] mb-2">
+            {asks.map((ask, i) => (
+              <div key={`ask-${i}`} className="flex justify-between text-xs relative h-4 items-center">
+                <span className="text-[#F6465D] z-10 font-medium">{ask.price.toFixed(1)}</span>
+                <span className="text-[#EAECEF] z-10 opacity-80">{ask.amount}</span>
+                <div className="absolute right-0 top-0 bottom-0 bg-[#F6465D]/10 transition-all duration-300" style={{ width: `${Math.random() * 60}%` }}></div>
+              </div>
+            ))}
+          </div>
+
+          {/* Current Price */}
+          <div className={`text-lg font-bold text-center py-1.5 my-1 ${isPositive ? 'text-[#0ECB81]' : 'text-[#F6465D]'}`}>
+            {currentPrice.toFixed(1)}
+            <div className="text-[10px] text-[#EAECEF] font-normal opacity-70">≈ ${currentPrice.toFixed(1)}</div>
+          </div>
+
+          {/* Bids (Green) */}
+          <div className="flex flex-col gap-[1px]">
+            {bids.map((bid, i) => (
+              <div key={`bid-${i}`} className="flex justify-between text-xs relative h-4 items-center">
+                <span className="text-[#0ECB81] z-10 font-medium">{bid.price.toFixed(1)}</span>
+                <span className="text-[#EAECEF] z-10 opacity-80">{bid.amount}</span>
+                <div className="absolute right-0 top-0 bottom-0 bg-[#0ECB81]/10 transition-all duration-300" style={{ width: `${Math.random() * 60}%` }}></div>
+              </div>
+            ))}
+          </div>
+
+          {/* Depth / Tools Bottom */}
+          <div className="mt-auto pt-2 flex items-center justify-between">
+            <div className="bg-[#2B3139] rounded px-2 py-1 text-[10px] text-[#EAECEF] flex items-center gap-1">
+              0.1 <ChevronDown size={10} />
+            </div>
+            <div className="flex gap-1">
+              {/* Icons for view toggles */}
+              <Activity size={14} className="text-[#848E9C]" />
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -560,22 +697,37 @@ export default function FuturosPage() {
         <div className="flex text-sm text-[#848E9C] font-bold border-b border-[#2B3139]">
           <div
             onClick={() => setActiveTab('positions')}
-            className={`px-4 py-3 border-b-2 transition-colors ${activeTab === 'positions' ? 'text-[#EAECEF] border-[#F0B90B]' : 'border-transparent'}`}
+            className={`px-3 py-3 border-b-2 transition-colors cursor-pointer ${activeTab === 'positions' ? 'text-[#EAECEF] border-[#F0B90B]' : 'border-transparent'}`}
           >
             {t('futuros.positions')} ({activeOrders.length})
           </div>
           <div
             onClick={() => setActiveTab('orders')}
-            className={`px-4 py-3 border-b-2 transition-colors ${activeTab === 'orders' ? 'text-[#EAECEF] border-[#F0B90B]' : 'border-transparent'}`}
+            className={`px-3 py-3 border-b-2 transition-colors cursor-pointer ${activeTab === 'orders' ? 'text-[#EAECEF] border-[#F0B90B]' : 'border-transparent'}`}
           >
             {t('futuros.openOrders')} ({historyOrders.length})
           </div>
           <div
             onClick={() => setActiveTab('bots')}
-            className={`px-4 py-3 border-b-2 transition-colors ${activeTab === 'bots' ? 'text-[#EAECEF] border-[#F0B90B]' : 'border-transparent'}`}
+            className={`px-3 py-3 border-b-2 transition-colors cursor-pointer ${activeTab === 'bots' ? 'text-[#EAECEF] border-[#F0B90B]' : 'border-transparent'}`}
           >
-            {t('futuros.bots')}
+            Bots
           </div>
+        </div>
+
+        {/* Filters Row below tabs */}
+        <div className="flex justify-between items-center px-4 py-2 border-b border-[#2B3139]/50">
+          <label className="flex items-center gap-2 text-[10px] text-[#848E9C]">
+            <div className="w-3 h-3 border border-[#848E9C] rounded-sm"></div>
+            Ocultar Otros Pares
+          </label>
+          <button
+            onClick={closeAllOrders}
+            disabled={isClosingAll || activeOrders.length === 0}
+            className="bg-[#2B3139] text-[#EAECEF] text-[10px] px-3 py-1 rounded disabled:opacity-40"
+          >
+            {isClosingAll ? '...' : 'Cerrar todo'}
+          </button>
         </div>
       </div>
 
@@ -601,6 +753,10 @@ export default function FuturosPage() {
                     </div>
                     <div className="text-[11px] text-[#848E9C]">
                       ${order.amount.toFixed(2)} · {t('futuros.price')}: {order.entryPrice?.toFixed(2)} · {order.startTime}
+                    </div>
+                    {/* PNL en tiempo real */}
+                    <div className={`text-xs font-bold mt-0.5 ${order.pnl >= 0 ? 'text-[#0ECB81]' : 'text-[#F6465D]'}`}>
+                      {order.pnl >= 0 ? '+' : ''}{order.pnl.toFixed(2)} USDT
                     </div>
                   </div>
                   <button
