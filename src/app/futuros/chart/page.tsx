@@ -1,8 +1,6 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import * as echarts from 'echarts'
 import { ArrowLeft, ChevronDown } from 'lucide-react'
@@ -30,7 +28,7 @@ const generateOrderBook = (price: number) => {
     return { asks: asks.reverse(), bids }
 }
 
-export default function ChartPage() {
+function ChartPageContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const pair = searchParams.get('pair') || 'BTC/USDT'
@@ -259,5 +257,13 @@ export default function ChartPage() {
             </div>
 
         </div>
+    )
+}
+
+export default function ChartPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-[#161A1E]" />}>
+            <ChartPageContent />
+        </Suspense>
     )
 }
