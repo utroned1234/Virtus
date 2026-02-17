@@ -213,7 +213,7 @@ export default function SignupClient({
           />
 
           <Input
-            label="Número de Carnet / Cédula"
+            label="C.I"
             type="text"
             required
             value={formData.carnet}

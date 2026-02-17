@@ -1,5 +1,7 @@
 'use client'
 
+import { useLanguage } from '@/context/LanguageContext'
+
 interface EarningsData {
   date: string
   amount: number
@@ -13,6 +15,7 @@ interface EarningsChartProps {
 }
 
 export default function EarningsChart({ totalEarnings, earningsHistory, referralBonusTotal }: EarningsChartProps) {
+  const { t } = useLanguage()
   const weekTotal = earningsHistory.reduce((sum, e) => sum + e.amount, 0)
 
   // Ganancia de hoy: último elemento del historial
@@ -32,11 +35,11 @@ export default function EarningsChart({ totalEarnings, earningsHistory, referral
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-[#34D399] animate-pulse shadow-[0_0_6px_rgba(52,211,153,0.6)]" />
           <span className="text-xs font-bold tracking-wider text-[#34D399]">
-            RESUMEN DE GANANCIAS
+            {t('home.earningsSummary')}
           </span>
         </div>
         <span className="text-[9px] text-white/40 uppercase tracking-wider">
-          Últimos 7 días
+          {t('home.last7days')}
         </span>
       </div>
 
@@ -46,13 +49,13 @@ export default function EarningsChart({ totalEarnings, earningsHistory, referral
           background: 'rgba(52, 211, 153, 0.08)',
           border: '1px solid rgba(52, 211, 153, 0.2)',
         }}>
-          <p className="text-[8px] text-white/50 uppercase tracking-wider mb-1">Hoy</p>
+          <p className="text-[8px] text-white/50 uppercase tracking-wider mb-1">{t('home.today')}</p>
           <p className="text-base font-bold text-[#34D399]">
             ${todayEarnings.toFixed(2)}
           </p>
           {referralBonusTotal > 0 && (
             <p className="text-[7px] text-[#66BB6A] mt-0.5">
-              +${referralBonusTotal.toFixed(2)} patrocinio
+              +${referralBonusTotal.toFixed(2)} {t('home.sponsorship').toLowerCase()}
             </p>
           )}
         </div>
@@ -60,7 +63,7 @@ export default function EarningsChart({ totalEarnings, earningsHistory, referral
           background: 'rgba(171, 130, 255, 0.08)',
           border: '1px solid rgba(171, 130, 255, 0.2)',
         }}>
-          <p className="text-[8px] text-white/50 uppercase tracking-wider mb-1">Ayer</p>
+          <p className="text-[8px] text-white/50 uppercase tracking-wider mb-1">{t('home.yesterday')}</p>
           <p className="text-base font-bold text-[#AB82FF]">
             ${yesterdayEarnings.toFixed(2)}
           </p>
@@ -69,7 +72,7 @@ export default function EarningsChart({ totalEarnings, earningsHistory, referral
           background: 'rgba(100, 181, 246, 0.08)',
           border: '1px solid rgba(100, 181, 246, 0.2)',
         }}>
-          <p className="text-[8px] text-white/50 uppercase tracking-wider mb-1">Semana</p>
+          <p className="text-[8px] text-white/50 uppercase tracking-wider mb-1">{t('home.week')}</p>
           <p className="text-base font-bold text-[#64B5F6]">
             ${weekTotal.toFixed(2)}
           </p>
@@ -78,7 +81,7 @@ export default function EarningsChart({ totalEarnings, earningsHistory, referral
           background: 'rgba(102, 187, 106, 0.08)',
           border: '1px solid rgba(102, 187, 106, 0.2)',
         }}>
-          <p className="text-[8px] text-white/50 uppercase tracking-wider mb-1">Acumulado</p>
+          <p className="text-[8px] text-white/50 uppercase tracking-wider mb-1">{t('home.accumulated')}</p>
           <p className="text-base font-bold text-[#66BB6A]">
             ${totalEarnings.toFixed(2)}
           </p>

@@ -873,16 +873,16 @@ export default function HomePage() {
             <div className="px-5 pb-2 max-h-[55vh] overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(52,211,153,0.3) transparent' }}>
               <div className="space-y-4 text-[12px] leading-relaxed text-white/80 text-justify">
                 <p>
-                  <strong className="text-[#34D399]">Virtus Investment Partners</strong> es una firma estadounidense de gestión de inversiones con sede en Hartford, Connecticut (EE. UU.). Fue fundada el 1 de noviembre de 1995, y desde entonces ha crecido como una empresa pública que cotiza en bolsa bajo el símbolo <strong className="text-white">VRTS</strong>.
+                  <strong className="text-[#34D399]">Virtus Investment Partners</strong> is an American investment management firm headquartered in Hartford, Connecticut (USA). It was founded on November 1, 1995, and has since grown into a publicly traded company listed on the stock exchange under the symbol <strong className="text-white">VRTS</strong>.
                 </p>
                 <p>
-                  La compañía opera bajo un modelo multi-gerente, lo que significa que agrupa a varios gestores de inversión independientes, cada uno con su propio estilo y proceso de inversión. Esto le permite ofrecer una gama amplia y diversificada de soluciones de inversión adaptadas tanto a inversores individuales como a clientes institucionales.
+                  The company operates under a multi-manager model, meaning it brings together several independent investment managers, each with their own style and investment process. This allows it to offer a broad and diversified range of investment solutions tailored to both individual investors and institutional clients.
                 </p>
                 <p>
-                  Virtus ofrece productos financieros variados que incluyen fondos mutuos, fondos cotizados (ETFs), fondos cerrados y cuentas separadas; además de servicios de gestión de activos en renta variable, renta fija, multi-activos y estrategias alternativas.
+                  Virtus offers a variety of financial products including mutual funds, exchange-traded funds (ETFs), closed-end funds, and separate accounts; as well as asset management services in equities, fixed income, multi-asset, and alternative strategies.
                 </p>
                 <p>
-                  La misión de la empresa es proporcionar estrategias de inversión de alta calidad que ayuden a sus clientes a alcanzar sus objetivos financieros a largo plazo, combinando la flexibilidad de gestores boutique con los recursos y la infraestructura de una firma consolidada.
+                  The company&apos;s mission is to provide high-quality investment strategies that help its clients achieve their long-term financial goals, combining the flexibility of boutique managers with the resources and infrastructure of an established firm.
                 </p>
 
                 <a
