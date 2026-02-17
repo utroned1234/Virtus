@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
+import { useToast } from '@/components/ui/Toast'
 import * as echarts from 'echarts'
 import {
   ArrowUp,
@@ -61,12 +62,16 @@ const PAIRS = [
 
 export default function FuturosPage() {
   const { t } = useLanguage()
+  const { showToast } = useToast()
   const chartRef = useRef<HTMLDivElement>(null)
   const chartInstance = useRef<echarts.ECharts | null>(null)
 
   // WebSocket Refs
   const wsKline = useRef<WebSocket | null>(null)
   const wsTrade = useRef<WebSocket | null>(null)
+
+  // Polling refs
+  const activeOrderIdsRef = useRef<Set<string>>(new Set())
 
   // -- State --
   const [currentPair, setCurrentPair] = useState('BTC/USDT')
@@ -96,51 +101,110 @@ export default function FuturosPage() {
   const [tpSl, setTpSl] = useState(false)
   const [reduceOnly, setReduceOnly] = useState(false)
 
-  // --- Persistence Effect & Real Balance ---
+  // TP/SL values
+  const [tpValue, setTpValue] = useState<string>('')
+  const [slValue, setSlValue] = useState<string>('')
+
+  // Close state
+  const [closingOrderId, setClosingOrderId] = useState<string | null>(null)
+
+  // --- Helper ---
+  const getToken = () => document.cookie.split('; ').find(row => row.startsWith('auth_token='))?.split('=')[1]
+
+  const mapActiveOrders = (orders: any[]): TradeOrder[] =>
+    orders.map((o: any) => ({
+      id: o.id,
+      type: o.type as 'CALL' | 'PUT',
+      pair: o.pair,
+      amount: o.amount_bs,
+      leverage: o.leverage,
+      entryPrice: o.entry_price,
+      startTime: new Date(o.created_at).toLocaleTimeString(),
+      status: 'ACTIVE' as const,
+      tp: o.tp || null,
+      sl: o.sl || null,
+      pnl: 0,
+      signalId: o.signal_id || null,
+    }))
+
+  const mapHistoryOrders = (orders: any[]): TradeOrder[] =>
+    orders.map((o: any) => ({
+      id: o.id,
+      type: o.type as 'CALL' | 'PUT',
+      pair: o.pair,
+      amount: o.amount_bs,
+      leverage: o.leverage,
+      entryPrice: o.entry_price,
+      exitPrice: o.exit_price,
+      startTime: new Date(o.created_at).toLocaleTimeString(),
+      status: o.status as 'WIN' | 'LOSS',
+      tp: null,
+      sl: null,
+      pnl: o.pnl_bs || 0,
+    }))
+
+  // --- Initial Load ---
   useEffect(() => {
-    const savedHistory = localStorage.getItem('joy_history_orders')
-    if (savedHistory) setHistoryOrders(JSON.parse(savedHistory))
-
-    const fetchBalance = async () => {
+    const init = async () => {
+      const token = getToken()
+      if (!token) return
       try {
-        const token = document.cookie.split('; ').find(row => row.startsWith('auth_token='))?.split('=')[1]
-        if (!token) return
-        const res = await fetch('/api/user/balance', { headers: { Authorization: `Bearer ${token}` } })
-        if (res.ok) {
-          const data = await res.json()
-          setBalance(data.balance)
+        const [balRes, activeRes, histRes] = await Promise.all([
+          fetch('/api/user/balance', { headers: { Authorization: `Bearer ${token}` } }),
+          fetch('/api/futuros/order', { headers: { Authorization: `Bearer ${token}` } }),
+          fetch('/api/futuros/order?status=CLOSED', { headers: { Authorization: `Bearer ${token}` } }),
+        ])
+        if (balRes.ok) { const d = await balRes.json(); setBalance(d.balance) }
+        if (activeRes.ok) {
+          const d = await activeRes.json()
+          const mapped = mapActiveOrders(d.orders)
+          setActiveOrders(mapped)
+          activeOrderIdsRef.current = new Set(d.orders.map((o: any) => o.id))
         }
-      } catch (error) { console.error(error) }
+        if (histRes.ok) { const d = await histRes.json(); setHistoryOrders(mapHistoryOrders(d.orders)) }
+      } catch (e) { console.error(e) }
     }
+    init()
+  }, [])
 
-    const fetchActiveOrders = async () => {
+  // --- Polling: detect admin-closed orders ---
+  useEffect(() => {
+    const poll = async () => {
+      const token = getToken()
+      if (!token) return
       try {
-        const token = document.cookie.split('; ').find(row => row.startsWith('auth_token='))?.split('=')[1]
-        if (!token) return
         const res = await fetch('/api/futuros/order', { headers: { Authorization: `Bearer ${token}` } })
-        if (res.ok) {
-          const data = await res.json()
-          const mappedOrders: TradeOrder[] = data.orders.map((o: any) => ({
-            id: o.id,
-            type: o.type as 'CALL' | 'PUT',
-            pair: o.pair,
-            amount: o.amount_bs,
-            leverage: o.leverage,
-            entryPrice: o.entry_price,
-            startTime: new Date(o.created_at).toLocaleTimeString(),
-            status: 'ACTIVE',
-            tp: o.tp || null,
-            sl: o.sl || null,
-            pnl: o.signal_id ? o.pnl_bs || 0 : 0,
-            signalId: o.signal_id || null,
-          }))
-          setActiveOrders(mappedOrders)
+        if (!res.ok) return
+        const data = await res.json()
+        const newIds = new Set<string>(data.orders.map((o: any) => String(o.id)))
+        const closedIds: string[] = []
+        activeOrderIdsRef.current.forEach(id => { if (!newIds.has(id)) closedIds.push(id) })
+
+        if (closedIds.length > 0) {
+          const histRes = await fetch('/api/futuros/order?status=CLOSED', { headers: { Authorization: `Bearer ${token}` } })
+          if (histRes.ok) {
+            const histData = await histRes.json()
+            setHistoryOrders(mapHistoryOrders(histData.orders))
+            closedIds.forEach(id => {
+              const closed = histData.orders.find((o: any) => String(o.id) === id)
+              if (closed) {
+                const isWin = closed.status === 'WIN'
+                const pnl = Math.abs(closed.pnl_bs || 0)
+                showToast(`${closed.pair} ${closed.type === 'CALL' ? 'LONG' : 'SHORT'} — ${isWin ? `+$${pnl.toFixed(2)}` : `-$${pnl.toFixed(2)}`}`, isWin ? 'success' : 'error')
+              }
+            })
+          }
+          const balRes = await fetch('/api/user/balance', { headers: { Authorization: `Bearer ${token}` } })
+          if (balRes.ok) { const d = await balRes.json(); setBalance(d.balance) }
         }
-      } catch (error) { console.error(error) }
+
+        setActiveOrders(mapActiveOrders(data.orders))
+        activeOrderIdsRef.current = newIds
+      } catch { /* silent */ }
     }
 
-    fetchBalance()
-    fetchActiveOrders()
+    const intervalId = setInterval(poll, 5000)
+    return () => clearInterval(intervalId)
   }, [])
 
   // --- WebSocket & Data ---
@@ -196,7 +260,9 @@ export default function FuturosPage() {
           pair: currentPair,
           amount: tradeAmount,
           leverage: tradeLeverage,
-          entryPrice: currentPrice
+          entryPrice: currentPrice,
+          tp: tpSl && tpValue ? parseFloat(tpValue) : null,
+          sl: tpSl && slValue ? parseFloat(slValue) : null,
         })
       })
       if (res.ok) {
@@ -204,13 +270,56 @@ export default function FuturosPage() {
         const newOrder: TradeOrder = {
           id: data.order.id, type, pair: currentPair, amount: tradeAmount, leverage: tradeLeverage,
           entryPrice: currentPrice, startTime: new Date().toLocaleTimeString(), status: 'ACTIVE',
-          pnl: 0, tp: null, sl: null
+          pnl: 0, tp: tpSl && tpValue ? parseFloat(tpValue) : null, sl: tpSl && slValue ? parseFloat(slValue) : null
         }
         setActiveOrders([newOrder, ...activeOrders])
         setBalance(prev => prev - tradeAmount)
         setShowConfirm(false)
       } else { alert(t('futuros.errorOpening')) }
     } catch { alert(t('futuros.errorConnection')) }
+  }
+
+  // --- Close Order (user manual close) ---
+  const handleCloseOrder = async (orderId: string) => {
+    setClosingOrderId(String(orderId))
+    try {
+      const token = getToken()
+      // Fetch the real-time price of the ORDER's pair (not the currently displayed pair)
+      const order = activeOrders.find(o => String(o.id) === String(orderId))
+      let closePrice = currentPrice
+      if (order) {
+        try {
+          const symbol = order.pair.replace('/', '').toUpperCase()
+          const priceRes = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`)
+          if (priceRes.ok) { const pd = await priceRes.json(); closePrice = parseFloat(pd.price) }
+        } catch { /* fallback to currentPrice */ }
+      }
+      if (!closePrice) { setClosingOrderId(null); return }
+      const res = await fetch('/api/futuros/close', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ orderId, closePrice, reason: 'MANUAL' }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        const isWin = data.order.status === 'WIN'
+        const pnl = Math.abs(data.order.pnl_bs || 0)
+        showToast(`${isWin ? '+' : '-'}$${pnl.toFixed(2)} — ${isWin ? 'WIN' : 'LOSS'}`, isWin ? 'success' : 'error')
+        setActiveOrders(prev => prev.filter(o => String(o.id) !== String(orderId)))
+        activeOrderIdsRef.current.delete(String(orderId))
+        // Refresh history and balance
+        const token2 = getToken()
+        const [histRes, balRes] = await Promise.all([
+          fetch('/api/futuros/order?status=CLOSED', { headers: { Authorization: `Bearer ${token2}` } }),
+          fetch('/api/user/balance', { headers: { Authorization: `Bearer ${token2}` } }),
+        ])
+        if (histRes.ok) { const d = await histRes.json(); setHistoryOrders(mapHistoryOrders(d.orders)) }
+        if (balRes.ok) { const d = await balRes.json(); setBalance(d.balance) }
+      } else {
+        showToast(data.error || t('futuros.errorConnection'), 'error')
+      }
+    } catch { showToast(t('futuros.errorConnection'), 'error') }
+    finally { setClosingOrderId(null) }
   }
 
   // --- UI Helpers ---
@@ -238,15 +347,6 @@ export default function FuturosPage() {
 
   return (
     <div className="min-h-screen bg-[#161A1E] text-[#EAECEF] font-sans pb-20 text-sm">
-
-      {/* Top Navigation */}
-      <div className="flex items-center gap-4 px-4 py-3 bg-[#161A1E] text-[#848E9C] text-sm overflow-x-auto whitespace-nowrap scrollbar-hide">
-        <span className="text-[#EAECEF] font-bold text-base">USDⓈ-M</span>
-        <span>COIN-M</span>
-        <span>{t('futuros.options')}</span>
-        <span>Smart Money</span>
-        <div className="ml-auto" onClick={() => setShowSidebar(true)}><Menu className="text-[#848E9C]" size={20} /></div>
-      </div>
 
       {/* Pair Header */}
       <div className="px-4 py-2 flex justify-between items-center bg-[#161A1E]">
@@ -389,12 +489,41 @@ export default function FuturosPage() {
 
           {/* Checkboxes */}
           <div className="flex flex-col gap-2 mb-4">
-            <label className="flex items-center gap-2 text-[10px] text-[#848E9C]">
-              <div className={`w-3 h-3 border rounded-sm flex items-center justify-center ${tpSl ? 'bg-[#F0B90B] border-[#F0B90B]' : 'border-[#848E9C]'}`} onClick={() => setTpSl(!tpSl)}>
+            <label className="flex items-center gap-2 text-[10px] text-[#848E9C] cursor-pointer">
+              <div className={`w-3 h-3 border rounded-sm flex items-center justify-center ${tpSl ? 'bg-[#F0B90B] border-[#F0B90B]' : 'border-[#848E9C]'}`} onClick={() => { setTpSl(!tpSl); if (tpSl) { setTpValue(''); setSlValue('') } }}>
                 {tpSl && <CheckCircle2 size={10} className="text-black" />}
               </div>
               TP/SL
             </label>
+
+            {/* TP/SL Inputs — visible only when checkbox is active */}
+            {tpSl && (
+              <div className="flex gap-2 mt-1">
+                <div className="flex-1">
+                  <div className="text-[9px] text-[#0ECB81] mb-1 uppercase tracking-wider">TP Profit</div>
+                  <input
+                    type="number"
+                    value={tpValue}
+                    onChange={e => setTpValue(e.target.value)}
+                    placeholder="Price"
+                    className="w-full bg-[#2B3139] text-[#EAECEF] text-xs px-2 py-1.5 rounded border border-[#0ECB81]/40 focus:outline-none focus:border-[#0ECB81]"
+                    style={{ appearance: 'none' }}
+                  />
+                </div>
+                <div className="flex-1">
+                  <div className="text-[9px] text-[#F6465D] mb-1 uppercase tracking-wider">TP Loss</div>
+                  <input
+                    type="number"
+                    value={slValue}
+                    onChange={e => setSlValue(e.target.value)}
+                    placeholder="Price"
+                    className="w-full bg-[#2B3139] text-[#EAECEF] text-xs px-2 py-1.5 rounded border border-[#F6465D]/40 focus:outline-none focus:border-[#F6465D]"
+                    style={{ appearance: 'none' }}
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="flex justify-between items-center">
               <label className="flex items-center gap-2 text-[10px] text-[#848E9C]">
                 <div className={`w-3 h-3 border rounded-sm flex items-center justify-center ${reduceOnly ? 'bg-[#F0B90B] border-[#F0B90B]' : 'border-[#848E9C]'}`} onClick={() => setReduceOnly(!reduceOnly)}>
@@ -450,11 +579,96 @@ export default function FuturosPage() {
         </div>
       </div>
 
-      {/* Empty State */}
-      <div className="flex flex-col items-center justify-center py-10 text-[#5E6673]">
-        <FileText size={40} className="mb-2 opacity-20" />
-        <span className="text-sm">{t('futuros.noPosition')}</span>
-      </div>
+      {/* Tab Content */}
+      {activeTab === 'positions' && (
+        activeOrders.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 text-[#5E6673]">
+            <FileText size={40} className="mb-2 opacity-20" />
+            <span className="text-sm">{t('futuros.noPosition')}</span>
+          </div>
+        ) : (
+          <div>
+            {activeOrders.map(order => (
+              <div key={order.id} className="border-b border-[#2B3139] px-4 py-3">
+                <div className="flex justify-between items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-bold text-[#EAECEF] text-sm">{order.pair}</span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${order.type === 'CALL' ? 'bg-[#0ECB81]/20 text-[#0ECB81]' : 'bg-[#F6465D]/20 text-[#F6465D]'}`}>
+                        {order.type === 'CALL' ? 'LONG' : 'SHORT'} {order.leverage}x
+                      </span>
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#F0B90B] animate-pulse" />
+                    </div>
+                    <div className="text-[11px] text-[#848E9C]">
+                      ${order.amount.toFixed(2)} · {t('futuros.price')}: {order.entryPrice?.toFixed(2)} · {order.startTime}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleCloseOrder(String(order.id))}
+                    disabled={closingOrderId === String(order.id)}
+                    className="shrink-0 px-3 py-1.5 rounded text-[11px] font-bold uppercase transition-all"
+                    style={{
+                      background: closingOrderId === String(order.id) ? 'rgba(248,113,113,0.05)' : 'rgba(248,113,113,0.15)',
+                      border: '1px solid rgba(248,113,113,0.4)',
+                      color: closingOrderId === String(order.id) ? 'rgba(248,113,113,0.4)' : '#F87171',
+                    }}
+                  >
+                    {closingOrderId === String(order.id) ? '...' : t('trading.close')}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      )}
+
+      {activeTab === 'orders' && (
+        historyOrders.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 text-[#5E6673]">
+            <FileText size={40} className="mb-2 opacity-20" />
+            <span className="text-sm">{t('futuros.noHistory')}</span>
+          </div>
+        ) : (
+          <div>
+            {historyOrders.map(order => {
+              const isWin = order.status === 'WIN'
+              const pnl = order.pnl || 0
+              return (
+                <div key={order.id} className="border-b border-[#2B3139] px-4 py-3">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-bold text-[#EAECEF] text-sm">{order.pair}</span>
+                        <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${order.type === 'CALL' ? 'bg-[#0ECB81]/20 text-[#0ECB81]' : 'bg-[#F6465D]/20 text-[#F6465D]'}`}>
+                          {order.type === 'CALL' ? 'LONG' : 'SHORT'} {order.leverage}x
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-[#848E9C]">
+                        ${order.amount.toFixed(2)} · {order.startTime}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className={`text-sm font-bold ${isWin ? 'text-[#0ECB81]' : 'text-[#F6465D]'}`}>
+                        {isWin ? '+' : '-'}${Math.abs(pnl).toFixed(2)}
+                      </div>
+                      <div className={`text-[10px] px-2 py-0.5 rounded font-bold text-center mt-0.5 ${isWin ? 'bg-[#0ECB81]/20 text-[#0ECB81]' : 'bg-[#F6465D]/20 text-[#F6465D]'}`}>
+                        {isWin ? 'WIN' : 'LOSS'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )
+      )}
+
+      {activeTab === 'bots' && (
+        <div className="flex flex-col items-center justify-center py-10 text-[#5E6673]">
+          <FileText size={40} className="mb-2 opacity-20" />
+          <span className="text-sm">Bots coming soon</span>
+        </div>
+      )}
 
       {/* Bottom Sheet Trigger */}
       <div className="fixed bottom-16 left-0 right-0 py-2 border-t border-[#2B3139] bg-[#161A1E] text-center text-xs text-[#848E9C] flex items-center justify-center gap-2">
