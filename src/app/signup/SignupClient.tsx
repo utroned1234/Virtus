@@ -98,7 +98,7 @@ export default function SignupClient({
   initialSponsorCode?: string
 }) {
   const router = useRouter()
-  const defaultSponsorCode = initialSponsorCode || 'ADMIN001'
+  const defaultSponsorCode = initialSponsorCode || 'W98B1177'
   const [formData, setFormData] = useState({
     sponsor_code: defaultSponsorCode,
     full_name: '',
