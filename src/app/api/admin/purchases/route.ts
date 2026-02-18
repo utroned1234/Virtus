@@ -30,11 +30,16 @@ export async function GET(req: NextRequest) {
       skip: offset,
     })
 
-    const totalInvestmentResult = await prisma.purchase.aggregate({
+    const activePurchases = await prisma.purchase.findMany({
       where: { status: 'ACTIVE' },
-      _sum: { investment_bs: true },
+      select: {
+        vip_package: {
+          select: { investment_bs: true }
+        }
+      }
     })
-    const totalInvestment = totalInvestmentResult._sum.investment_bs || 0
+
+    const totalInvestment = activePurchases.reduce((sum, p) => sum + (p.vip_package?.investment_bs || 0), 0)
     const totalCount = await prisma.purchase.count()
 
     return NextResponse.json({

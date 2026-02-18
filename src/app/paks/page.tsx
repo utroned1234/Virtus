@@ -173,6 +173,7 @@ export default function PaksPage() {
               : 0
 
             // Bloquear paquetes menores o iguales al activo actual
+            // Lógica: Si tengo nivel 3, no puedo comprar 1, 2 ni 3. Solo 4 para arriba.
             const isBlockedByActive = activeHighest !== null && pkg.level <= activeHighest.level
             const isDisabled = !pkg.is_enabled || isActive || isBlockedByActive
             const tier = getPackageTier(pkg.level)
@@ -295,10 +296,10 @@ export default function PaksPage() {
                     {isBlockedByActive
                       ? t('vip.blocked')
                       : isUpgrade
-                          ? `${t('vip.upgrade')} +$${upgradeDiff.toLocaleString()}`
-                          : pkg.is_enabled
-                            ? t('vip.selectPlan')
-                            : t('vip.notAvailable')}
+                        ? `${t('vip.upgrade')} +$${upgradeDiff.toLocaleString()}`
+                        : pkg.is_enabled
+                          ? t('vip.selectPlan')
+                          : t('vip.notAvailable')}
                   </button>
                 </div>
               </div>

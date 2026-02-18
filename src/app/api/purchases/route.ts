@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
     // Bloquear paquetes menores o iguales al actual
     if (currentActivePurchase && currentActivePurchase.vip_package.level >= vipPackage.level) {
       return NextResponse.json(
-        { error: 'No puedes comprar un paquete igual o menor al que ya tienes activo' },
+        { error: 'No puedes comprar un paquete igual o menor al que ya tienes activo. Solo puedes hacer Upgrades.' },
         { status: 400 }
       )
     }
