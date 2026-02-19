@@ -184,7 +184,7 @@ export default function WithdrawalsPage() {
   }
 
   const calculateFinalAmount = (amount: number) => {
-    const discount = amount * 0.08
+    const discount = amount * 0.05
     return amount - discount
   }
 
@@ -414,7 +414,7 @@ export default function WithdrawalsPage() {
                   </div>
                   <div className="flex justify-between text-[10px] mb-1">
                     <span className="text-white/50">{t('withdrawals.discountLabel')}</span>
-                    <span className="text-[#F87171] font-medium">-${(parseFloat(amount) * 0.08).toFixed(2)}</span>
+                    <span className="text-[#F87171] font-medium">-${(parseFloat(amount) * 0.05).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-xs pt-1.5 border-t border-white/10">
                     <span className="text-white/70 font-medium">{t('withdrawals.youReceive')}</span>
