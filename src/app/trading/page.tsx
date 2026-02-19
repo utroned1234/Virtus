@@ -1080,6 +1080,9 @@ export default function FuturosPage() {
 
                         <div className={`text-lg font-black font-[Orbitron] tracking-tight ${displayPnl >= 0 ? 'text-[#34D399]' : 'text-[#FF5A5A]'}`}>
                           {displayPnl >= 0 ? '+' : ''}{displayPnl.toFixed(2)}
+                          <span className="text-[10px] ml-1 opacity-70">
+                            ({((displayPnl / order.amount) * 100).toFixed(2)}%)
+                          </span>
                         </div>
                       </div>
 
@@ -1111,29 +1114,37 @@ export default function FuturosPage() {
                   <p className="text-xs text-gray-500">{t('trading.noHistory')}</p>
                 </div>
               ) : (
-                historyOrders.map(order => (
-                  <div key={order.id} className="bg-[#131B26] rounded-xl border border-white/5 p-4 flex items-center justify-between hover:bg-white/5 transition-colors">
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-2">
-                        {/* Pair name removed per request */}
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${order.type === 'CALL' ? 'bg-[#34D399]/10 text-[#34D399]' : 'bg-[#FF5A5A]/10 text-[#FF5A5A]'
-                          }`}>
-                          {order.type === 'CALL' ? t('trading.rise') : t('trading.fall')}
-                        </span>
-                      </div>
-                      <span className="text-[10px] text-gray-500">{order.startTime}</span>
-                    </div>
+                historyOrders.map(order => {
+                  const pnl = order.pnl || 0
+                  const isCall = order.type === 'CALL'
+                  const typeText = isCall ? t('trading.rise') : t('trading.fall')
+                  // Match the requested "dark list" style
+                  // Left: Type + Amount
+                  // Right: Date \n PNL
+                  const pnlColor = pnl >= 0 ? 'text-[#3B82F6]' : 'text-[#FF5A5A]' // Blue for Win
 
-                    <div className="text-right">
-                      <p className={`text-base font-bold font-[Orbitron] ${order.pnl >= 0 ? 'text-[#34D399]' : 'text-[#FF5A5A]'}`}>
-                        {order.pnl >= 0 ? '+' : ''}${order.pnl.toFixed(2)}
-                      </p>
-                      <p className="text-[10px] text-gray-600">
-                        {order.pnl >= 0 ? t('trading.profit') : t('trading.loss')}
-                      </p>
+                  return (
+                    <div key={order.id} className="bg-[#131B26] rounded-xl border border-white/5 p-4 flex items-center justify-between hover:bg-white/5 transition-colors">
+                      <div className="flex items-center gap-3">
+                        {/* Indicator Bar */}
+                        <div className={`w-1 h-8 rounded-full ${isCall ? 'bg-[#34D399]' : 'bg-[#FF5A5A]'}`}></div>
+
+                        <div className="flex flex-col">
+                          <div className={`text-sm font-bold uppercase ${isCall ? 'text-[#34D399]' : 'text-[#FF5A5A]'}`}>
+                            {typeText} {order.amount.toFixed(2)}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <div className="text-[10px] text-gray-500 mb-1">{order.startTime}</div>
+                        <p className={`text-base font-bold font-[Orbitron] ${pnlColor}`}>
+                          {pnl >= 0 ? '+' : ''}${Math.abs(pnl).toFixed(2)}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  )
+                })
               )}
             </div>
           )}

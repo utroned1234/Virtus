@@ -35,6 +35,7 @@ interface TradeOrder {
   autoCloseAt?: string | null
   capitalBefore?: number
   gainTotal?: number
+  percentage?: number
 }
 
 interface Candle {
@@ -115,6 +116,7 @@ export default function FuturosPage() {
       tp: o.tp || null,
       sl: o.sl || null,
       pnl: 0,
+      percentage: 0,
       signalId: o.signal_id || null,
     }))
 
@@ -127,7 +129,7 @@ export default function FuturosPage() {
       leverage: o.leverage,
       entryPrice: o.entry_price,
       exitPrice: o.exit_price,
-      startTime: new Date(o.created_at).toLocaleTimeString(),
+      startTime: new Date(o.created_at).toLocaleString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(',', ''),
       status: o.status as 'WIN' | 'LOSS',
       tp: null,
       sl: null,
@@ -244,7 +246,7 @@ export default function FuturosPage() {
           autoCloseIds.push({ id: String(order.id), reason: 'LIQUIDATION' })
         }
 
-        return { ...order, pnl }
+        return { ...order, pnl, percentage: pnlPercent * 100 }
       })
 
       setActiveOrders([...signalOrders, ...otherPairOrders, ...updatedManual])
@@ -757,18 +759,28 @@ export default function FuturosPage() {
                 <div className="flex justify-between items-center gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="font-bold text-[#EAECEF] text-sm">{order.pair}</span>
+                      {/* Pair name hidden per user request */}
+                      {/* <span className="font-bold text-[#EAECEF] text-sm">{order.pair}</span> */}
                       <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${order.type === 'CALL' ? 'bg-[#0ECB81]/20 text-[#0ECB81]' : 'bg-[#F6465D]/20 text-[#F6465D]'}`}>
                         {order.type === 'CALL' ? 'LONG' : 'SHORT'} {order.leverage}x
                       </span>
                       <div className="w-1.5 h-1.5 rounded-full bg-[#F0B90B] animate-pulse" />
                     </div>
                     <div className="text-[11px] text-[#848E9C]">
-                      ${order.amount.toFixed(2)} · {t('futuros.price')}: {order.entryPrice?.toFixed(2)} · {order.startTime}
+                      ${order.amount.toFixed(2)} · {t('futuros.price')}: {order.entryPrice?.toFixed(2)}
+                      {/* · {order.startTime} Removed time to clean up if needed, but keeping for now or user might ask? 
+                          User said "no muestre numbers below pair" in history. 
+                          For Active, I'll just hide the pair name for now as requested. 
+                      */}
                     </div>
                     {/* PNL en tiempo real */}
-                    <div className={`text-xs font-bold mt-0.5 ${order.pnl >= 0 ? 'text-[#0ECB81]' : 'text-[#F6465D]'}`}>
-                      {order.pnl >= 0 ? '+' : ''}{order.pnl.toFixed(2)} USDT
+                    <div className="mt-1">
+                      <div className={`text-lg font-bold ${order.pnl >= 0 ? 'text-[#0ECB81]' : 'text-[#F6465D]'}`}>
+                        {order.pnl >= 0 ? '+' : ''}{order.pnl.toFixed(2)} USDT
+                      </div>
+                      <div className={`text-xs font-medium ${order.pnl >= 0 ? 'text-[#0ECB81]' : 'text-[#F6465D]'}`}>
+                        ({order.percentage?.toFixed(2)}%)
+                      </div>
                     </div>
                   </div>
                   <button
@@ -799,29 +811,46 @@ export default function FuturosPage() {
         ) : (
           <div>
             {historyOrders.map(order => {
-              const isWin = order.status === 'WIN'
               const pnl = order.pnl || 0
+              const isCall = order.type === 'CALL'
+              const typeText = isCall ? 'buy' : 'sell'
+              const typeColor = isCall ? 'text-[#0ECB81]' : 'text-[#F6465D]' // Green/Red
+              // The image uses distinct colors for PNL. We'll stick to Green for profit, Red for loss.
+              const pnlColor = pnl >= 0 ? 'text-[#3B82F6]' : 'text-[#F6465D]' // Blue for win (like image maybe?), Red for loss. 
+              // Wait, user image has Blue for positive PNL (308.00, 212.50, etc)?
+              // "NZDUSD, sell 4.00 ... 308.00" (Blue PNL)
+              // "EURUSD, sell 5.00 ... -515.00" (Red PNL)
+              // So Positive = Blue, Negative = Red.
+              // Let's use Blue (#3B82F6) for Positive PNL to match image style slightly better, or user might prefer Green.
+              // The app uses Green for 'Wins'. I'll stick to the App's Green (#0ECB81) for consistency unless "blue" is requested.
+              // Actually image has Blue.
+              const finalPnlColor = pnl >= 0 ? 'text-[#3B82F6]' : 'text-[#F6465D]' // Blue/Red
+
               return (
-                <div key={order.id} className="border-b border-[#2B3139] px-4 py-3">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-bold text-[#EAECEF] text-sm">{order.pair}</span>
-                        <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${order.type === 'CALL' ? 'bg-[#0ECB81]/20 text-[#0ECB81]' : 'bg-[#F6465D]/20 text-[#F6465D]'}`}>
-                          {order.type === 'CALL' ? 'LONG' : 'SHORT'} {order.leverage}x
-                        </span>
+                <div key={order.id} className="border-b border-[#2B3139] py-3 px-4 flex justify-between items-center bg-[#161A1E]">
+                  <div className="flex items-center gap-3">
+                    {/* Indicator Bar */}
+                    <div className={`w-1 h-8 rounded-full ${isCall ? 'bg-[#0ECB81]' : 'bg-[#F6465D]'}`}></div>
+
+                    <div className="flex flex-col">
+                      {/* Type + Amount */}
+                      <div className={`text-sm font-bold ${typeColor} uppercase`}>
+                        {/* No $ sign as per image request */}
+                        {typeText} {order.amount.toFixed(2)}
                       </div>
-                      <div className="text-[11px] text-[#848E9C]">
-                        ${order.amount.toFixed(2)} · {order.startTime}
-                      </div>
+                      {/* Hidden Pair & Prices as requested */}
                     </div>
-                    <div className="text-right">
-                      <div className={`text-sm font-bold ${isWin ? 'text-[#0ECB81]' : 'text-[#F6465D]'}`}>
-                        {isWin ? '+' : '-'}${Math.abs(pnl).toFixed(2)}
-                      </div>
-                      <div className={`text-[10px] px-2 py-0.5 rounded font-bold text-center mt-0.5 ${isWin ? 'bg-[#0ECB81]/20 text-[#0ECB81]' : 'bg-[#F6465D]/20 text-[#F6465D]'}`}>
-                        {isWin ? 'WIN' : 'LOSS'}
-                      </div>
+                  </div>
+
+                  <div className="text-right">
+                    {/* Date */}
+                    <div className="text-[10px] text-[#848E9C] mb-1 font-mono tracking-tighter">
+                      {order.startTime}
+                    </div>
+                    {/* PNL */}
+                    <div className={`text-base font-bold ${finalPnlColor}`}>
+                      {/* No $ sign, just the number */}
+                      {pnl.toFixed(2)}
                     </div>
                   </div>
                 </div>
