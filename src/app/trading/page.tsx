@@ -276,7 +276,7 @@ export default function FuturosPage() {
             status: o.status as 'WIN' | 'LOSS',
             tp: null,
             sl: null,
-            pnl: o.pnl_bs || 0,
+            pnl: o.signal_id ? (o.pnl_bs || 0) * 0.4 : (o.pnl_bs || 0),
             closeReason: o.close_reason,
             signalId: o.signal_id || null,
           }))
@@ -450,7 +450,7 @@ export default function FuturosPage() {
                     status: o.status as 'WIN' | 'LOSS',
                     tp: null,
                     sl: null,
-                    pnl: o.pnl_bs || 0,
+                    pnl: o.signal_id ? (o.pnl_bs || 0) * 0.4 : (o.pnl_bs || 0),
                     closeReason: o.close_reason,
                     signalId: o.signal_id || null,
                   }))
@@ -802,7 +802,7 @@ export default function FuturosPage() {
           ...order,
           status: data.order.status,
           exitPrice: data.order.exit_price,
-          pnl: data.order.pnl_bs,
+          pnl: order.signalId ? (data.order.pnl_bs || 0) * 0.4 : (data.order.pnl_bs || 0),
           closeReason: data.order.close_reason
         }
 
@@ -1375,7 +1375,7 @@ export default function FuturosPage() {
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-gray-500">{t('trading.operation')}</span>
-                <span className="text-[#FFD700] font-bold font-[Orbitron]">${signalResult.gain_total.toFixed(2)}</span>
+                <span className="text-[#FFD700] font-bold font-[Orbitron]">+${signalResult.capital_added.toFixed(2)}</span>
               </div>
             </div>
 
