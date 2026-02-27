@@ -152,6 +152,46 @@ export async function wipeAccumulatedBonuses(
   return deleted.count
 }
 
+// Bono de Activación Directa: 0.5% del balance del patrocinador
+// Se paga al patrocinador directo cuando su referido activa un paquete >= $300
+export async function payActivationBonus(
+  client: DbClient,
+  newUserId: string,
+  investmentBs: number
+): Promise<void> {
+  if (investmentBs < 300) return
+
+  const newUser = await client.user.findUnique({
+    where: { id: newUserId },
+    select: { sponsor_id: true },
+  })
+
+  if (!newUser?.sponsor_id) return
+
+  const sponsorId = newUser.sponsor_id
+
+  // Obtener balance actual del patrocinador
+  const walletSum = await client.walletLedger.aggregate({
+    where: { user_id: sponsorId },
+    _sum: { amount_bs: true },
+  })
+
+  const sponsorBalance = walletSum._sum.amount_bs || 0
+  if (sponsorBalance <= 0) return
+
+  const bonusAmount = Math.round(sponsorBalance * 0.005 * 100) / 100
+  if (bonusAmount <= 0) return
+
+  await client.walletLedger.create({
+    data: {
+      user_id: sponsorId,
+      type: 'ACTIVATION_BONUS' as any,
+      amount_bs: bonusAmount,
+      description: `Bono activación directa (0.5% de $${sponsorBalance.toFixed(2)})`,
+    },
+  })
+}
+
 // Bono Retorno: 8.5% del monto de inversión para paquetes >= $300
 export async function payBonoRetorno(
   client: DbClient,

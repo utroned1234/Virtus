@@ -4,7 +4,7 @@ import { requireAuth } from '@/lib/auth/middleware'
 
 // POST: execute a signal with a code
 // Capital = wallet balance (sum of WalletLedger)
-// Invests 1% of wallet balance, auto-closes 15 min after signal was published
+// Invests 4% of wallet balance, auto-closes 15 min after signal was published
 export async function POST(req: NextRequest) {
   const authResult = requireAuth(req)
   if ('error' in authResult) {
@@ -76,9 +76,9 @@ export async function POST(req: NextRequest) {
     })
     const userRank = (user as any)?.current_rank ?? 0
 
-    // Calculate gains: 1% of wallet balance (rounded to 2 decimals)
+    // Calculate gains: 4% of wallet balance (rounded to 2 decimals)
     const round2 = (n: number) => Math.round(n * 100) / 100
-    const gainTotal = round2(capitalBefore * 0.01)
+    const gainTotal = round2(capitalBefore * 0.04)
     const capitalAdded = round2(gainTotal * 0.4)        // 40% → goes to user's wallet on auto-close
     const globalBonus = round2(gainTotal * 0.6)          // 60% → global bonus pool for ranked ancestors
     const newCapital = round2(capitalBefore + capitalAdded)  // se acredita al cerrar, no ahora

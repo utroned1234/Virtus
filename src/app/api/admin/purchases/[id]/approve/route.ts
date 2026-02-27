@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth/middleware'
-import { payReferralBonusesWithClient, payBonoRetorno, payInversion, wipeAccumulatedBonuses } from '@/lib/referrals'
+import { payReferralBonusesWithClient, payBonoRetorno, payInversion, wipeAccumulatedBonuses, payActivationBonus } from '@/lib/referrals'
 
 export async function POST(
   req: NextRequest,
@@ -79,6 +79,10 @@ export async function POST(
         }
         if (vipPackage.participates_in_bono_retorno) {
           await payBonoRetorno(tx, purchase.user_id, vipPackage.investment_bs, vipPackage.name)
+        }
+        // Bono activación directa: 0.5% del balance del patrocinador (paquetes >= $300)
+        if (vipPackage.investment_bs >= 300) {
+          await payActivationBonus(tx, purchase.user_id, vipPackage.investment_bs)
         }
       }
     })
