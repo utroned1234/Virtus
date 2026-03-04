@@ -280,9 +280,9 @@ export default function FuturosPage() {
             closeReason: o.close_reason,
             signalId: o.signal_id || null,
           }))
-          // Merge with localStorage history and remove duplicates
+          // Merge with localStorage history (server data last → overwrites stale localStorage)
           const localHistory = JSON.parse(localStorage.getItem('joy_history_orders') || '[]')
-          const allHistory = [...mapped, ...localHistory]
+          const allHistory = [...localHistory, ...mapped]
           const uniqueHistory = Array.from(new Map(allHistory.map(order => [order.id, order])).values())
           setHistoryOrders(uniqueHistory.slice(0, 50)) // Keep last 50
         }
