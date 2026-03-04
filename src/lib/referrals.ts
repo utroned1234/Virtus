@@ -185,7 +185,7 @@ export async function payActivationBonus(
   await client.walletLedger.create({
     data: {
       user_id: sponsorId,
-      type: 'ACTIVATION_BONUS' as any,
+      type: 'ACTIVATION_BONUS',
       amount_bs: bonusAmount,
       description: `Bono activación directa (0.5% de $${sponsorBalance.toFixed(2)})`,
     },
