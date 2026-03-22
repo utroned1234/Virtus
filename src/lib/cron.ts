@@ -1,6 +1,7 @@
 import cron from 'node-cron'
 
 let isVerifyScheduled = false
+let isSignalScheduled = false
 
 export function startPurchaseVerificationCron() {
   if (isVerifyScheduled) {
@@ -31,4 +32,30 @@ export function startPurchaseVerificationCron() {
 
   isVerifyScheduled = true
   console.log('[CRON-VERIFY] Verificacion de compras blockchain cada minuto')
+}
+
+export function startAutoPublishSignalCron() {
+  if (isSignalScheduled) {
+    console.log('[CRON-SIGNAL] Ya está programado')
+    return
+  }
+
+  // Every day at 4:00 PM Bolivia time (UTC-4, no DST)
+  cron.schedule('0 16 * * *', async () => {
+    try {
+      const response = await fetch('http://localhost:3000/api/cron/auto-publish-signal', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.CRON_SECRET || 'jade_verify_secret_2026_xK9mP2'}`,
+        },
+      })
+      const data = await response.json()
+      console.log('[CRON-SIGNAL] Señal publicada:', data.signal?.code, data.signal?.pair, data.signal?.direction)
+    } catch (error) {
+      console.error('[CRON-SIGNAL] Error:', error)
+    }
+  }, { timezone: 'America/La_Paz' })
+
+  isSignalScheduled = true
+  console.log('[CRON-SIGNAL] Señal automática programada: 4:00 PM hora Bolivia')
 }

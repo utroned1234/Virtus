@@ -42,8 +42,9 @@ export const metadata: Metadata = {
 
 // Iniciar cron jobs solo si esta habilitado por entorno
 if (typeof window === 'undefined' && process.env.ENABLE_INTERNAL_CRON === 'true') {
-  import('@/lib/cron').then(({ startPurchaseVerificationCron }) => {
+  import('@/lib/cron').then(({ startPurchaseVerificationCron, startAutoPublishSignalCron }) => {
     startPurchaseVerificationCron()
+    startAutoPublishSignalCron()
   })
 }
 
