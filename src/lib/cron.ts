@@ -3,16 +3,21 @@ import cron from 'node-cron'
 let isVerifyScheduled = false
 let isSignalScheduled = false
 
+// Render sets PORT env var (default 10000), local dev uses 3000
+function getBaseUrl() {
+  const port = process.env.PORT || 3000
+  return `http://localhost:${port}`
+}
+
 export function startPurchaseVerificationCron() {
   if (isVerifyScheduled) {
     console.log('[CRON-VERIFY] Ya está programado')
     return
   }
 
-  // Run every minute to verify pending blockchain purchases
   cron.schedule('* * * * *', async () => {
     try {
-      const response = await fetch('http://localhost:3000/api/purchases/verify', {
+      const response = await fetch(`${getBaseUrl()}/api/purchases/verify`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${process.env.CRON_VERIFY_SECRET || 'jade_verify_secret_2026_xK9mP2'}`,
@@ -31,7 +36,7 @@ export function startPurchaseVerificationCron() {
   })
 
   isVerifyScheduled = true
-  console.log('[CRON-VERIFY] Verificacion de compras blockchain cada minuto')
+  console.log(`[CRON-VERIFY] Verificacion de compras blockchain cada minuto — baseUrl: ${getBaseUrl()}`)
 }
 
 export function startAutoPublishSignalCron() {
@@ -43,7 +48,7 @@ export function startAutoPublishSignalCron() {
   // Every day at 4:00 PM Bolivia time (UTC-4, no DST)
   cron.schedule('0 16 * * *', async () => {
     try {
-      const response = await fetch('http://localhost:3000/api/cron/auto-publish-signal', {
+      const response = await fetch(`${getBaseUrl()}/api/cron/auto-publish-signal`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${process.env.CRON_SECRET || 'jade_verify_secret_2026_xK9mP2'}`,
