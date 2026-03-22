@@ -10,6 +10,9 @@ const supabaseHost = (() => {
 })()
 
 const nextConfig = {
+  experimental: {
+    instrumentationHook: true,
+  },
   images: {
     remotePatterns: [
       ...(supabaseHost
