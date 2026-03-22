@@ -28,7 +28,7 @@ export default function MercadoPage() {
   return (
     <div className="min-h-screen bg-[#060B10] text-white">
       {/* Top Bar */}
-      <div className="fixed top-0 left-0 right-0 z-30 bg-[#060B10]/95 backdrop-blur-md border-b border-white/5">
+      <div className="fixed top-0 left-0 lg:left-64 right-0 z-30 bg-[#060B10]/95 backdrop-blur-md border-b border-white/5">
         <div className="max-w-screen-xl mx-auto">
           {/* Header with Search */}
           <div className="px-4 h-[56px] flex items-center justify-between">
@@ -93,7 +93,7 @@ export default function MercadoPage() {
       )}
 
       {/* Spacer for fixed header */}
-      <div className="pt-[56px]">
+      <div className="pt-[56px] pb-20 lg:pb-4">
         <MarketList category={category} />
       </div>
 

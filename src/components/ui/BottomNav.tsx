@@ -68,7 +68,7 @@ export default function BottomNav() {
   ]
 
   return (
-    <nav className="fixed bottom-3 left-3 right-3 z-50 safe-area-inset-bottom">
+    <nav className="fixed bottom-3 left-3 right-3 z-50 safe-area-inset-bottom lg:hidden">
       {/* Fondo azul oscuro con bordes redondeados */}
       <div className="bg-[#0D1F1C] rounded-2xl shadow-[0_4px_30px_rgba(13,31,28,0.4)] overflow-hidden">
         <div className="max-w-screen-xl mx-auto px-2">

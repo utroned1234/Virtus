@@ -7,3 +7,15 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "20"
+
+  - type: cron
+    name: auto-publish-signal
+    runtime: node
+    schedule: "0 20 * * *"
+    buildCommand: ""
+    startCommand: node -e "fetch('https://appdefer.onrender.com/api/cron/auto-publish-signal',{method:'POST',headers:{'Authorization':'Bearer '+process.env.CRON_SECRET}}).then(r=>r.json()).then(d=>console.log('[SIGNAL]',JSON.stringify(d))).catch(e=>console.error(e))"
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: CRON_SECRET
+        sync: false

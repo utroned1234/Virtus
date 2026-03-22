@@ -266,14 +266,14 @@ export default function NetworkPage() {
   }
 
   return (
-    <div className="min-h-screen pb-20 overflow-hidden relative bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-azul-armada via-azul-noche to-black">
+    <div className="min-h-screen pb-20 lg:pb-0 overflow-hidden relative bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-azul-armada via-azul-noche to-black">
       <ScreenshotProtection />
       {/* Background Grid Pattern */}
       <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none"></div>
 
       <div className="relative z-10 max-w-screen-2xl mx-auto h-full flex flex-col">
         {/* Header Flotante */}
-        <div className="fixed top-0 left-0 right-0 z-50 p-3 bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
+        <div className="fixed top-0 left-0 lg:left-64 right-0 z-50 p-3 bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
           <div className="text-center pointer-events-auto mt-2">
             <h1 className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-gold via-white to-gold animate-shine">
               {t('network.title')}

@@ -189,9 +189,9 @@ export default function WithdrawalsPage() {
   }
 
   return (
-    <div className="min-h-screen pb-20">
+    <div className="min-h-screen pb-20 lg:pb-0">
       <ScreenshotProtection />
-      <div className="max-w-screen-xl mx-auto p-4 space-y-4">
+      <div className="max-w-3xl mx-auto p-4 md:p-6 lg:p-8 space-y-4">
 
         {/* Header */}
         <div className="text-center">

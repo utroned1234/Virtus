@@ -4,6 +4,7 @@ import { ToastProvider } from '@/components/ui/Toast'
 import { ThemeProvider } from '@/context/ThemeContext'
 import { LanguageProvider } from '@/context/LanguageContext'
 import GlassBackground from '@/components/ui/GlassBackground'
+import SideNav from '@/components/ui/SideNav'
 
 export const viewport: Viewport = {
   themeColor: '#34D399',
@@ -60,8 +61,9 @@ export default function RootLayout({
               {/* Fondo de cristal moderno */}
               <GlassBackground />
 
-              <div className="min-h-screen relative z-10">
-                <main className="pb-20">
+              <div className="min-h-screen relative z-10 lg:flex">
+                <SideNav />
+                <main className="flex-1 pb-20 lg:pb-8 min-w-0 overflow-x-hidden">
                   {children}
                 </main>
               </div>

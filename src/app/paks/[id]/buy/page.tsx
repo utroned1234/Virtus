@@ -178,7 +178,7 @@ export default function BuyPackagePage() {
   // Estado: Compra / Upgrade activado
   if (purchaseStatus === 'ACTIVE') {
     return (
-      <div className="min-h-screen pb-20">
+      <div className="min-h-screen pb-20 lg:pb-0">
         <div className="max-w-md mx-auto p-6 flex flex-col items-center justify-center min-h-[70vh]">
           <div className="glass-card !p-8 text-center space-y-5 w-full">
             <div className="w-20 h-20 rounded-full bg-[#34D399]/20 flex items-center justify-center mx-auto">
@@ -243,7 +243,7 @@ export default function BuyPackagePage() {
   // Estado: Rechazado
   if (purchaseStatus === 'REJECTED') {
     return (
-      <div className="min-h-screen pb-20">
+      <div className="min-h-screen pb-20 lg:pb-0">
         <div className="max-w-md mx-auto p-6 flex flex-col items-center justify-center min-h-[70vh]">
           <div className="glass-card !p-8 text-center space-y-5 w-full">
             <div className="w-20 h-20 rounded-full bg-red-500/20 flex items-center justify-center mx-auto">
@@ -299,7 +299,7 @@ export default function BuyPackagePage() {
     const progress = Math.min((confirmations / requiredConfs) * 100, 100)
 
     return (
-      <div className="min-h-screen pb-20">
+      <div className="min-h-screen pb-20 lg:pb-0">
         <div className="max-w-md mx-auto p-6 flex flex-col items-center justify-center min-h-[70vh]">
           <div className="glass-card !p-8 text-center space-y-5 w-full">
             <div className="w-16 h-16 rounded-full bg-[#3B82F6]/20 flex items-center justify-center mx-auto">
@@ -351,7 +351,7 @@ export default function BuyPackagePage() {
 
   // Estado principal: Selección de pago
   return (
-    <div className="min-h-screen pb-20">
+    <div className="min-h-screen pb-20 lg:pb-0">
       <div className="max-w-md mx-auto p-4 space-y-4">
         {/* Header */}
         <div className="text-center pt-2 pb-1">

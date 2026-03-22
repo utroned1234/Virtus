@@ -995,10 +995,41 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen p-6 pb-24">
+    <div className="min-h-screen pb-24 lg:pb-8 lg:flex lg:gap-0">
+
+      {/* ── SIDEBAR DESKTOP ── */}
+      <aside className="hidden lg:flex flex-col fixed left-0 top-0 h-full w-56 z-50"
+        style={{ background: '#0a1a0e', borderRight: '1px solid rgba(212,175,55,0.15)' }}>
+        <div className="px-5 py-6" style={{ borderBottom: '1px solid rgba(212,175,55,0.1)' }}>
+          <h2 className="text-lg font-bold text-gradient-gold-blue leading-tight">Panel Admin</h2>
+          <p className="text-text-secondary text-[10px] uppercase tracking-widest mt-1">GESTIÓN DEL SISTEMA</p>
+        </div>
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
+          {adminTabs.map((item) => {
+            const isActive = tab === item.key
+            return (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => setTab(item.key)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left ${isActive
+                  ? 'bg-gold/10 text-gold'
+                  : 'text-text-secondary hover:text-gold hover:bg-gold/5'
+                }`}
+              >
+                <span className="text-lg flex-shrink-0">{item.icon}</span>
+                <span className="text-sm font-medium">{item.label}</span>
+              </button>
+            )
+          })}
+        </nav>
+      </aside>
+
+      {/* ── CONTENT AREA ── */}
+      <div className="flex-1 min-w-0 lg:pl-56 p-4 md:p-6">
       <div className="max-w-screen-xl mx-auto space-y-6">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-gradient-gold-blue">Panel Admin</h1>
+        <div className="text-center lg:hidden">
+          <h1 className="text-3xl font-bold text-gradient-gold-blue">Panel Admin</h1>
           <p className="mt-2 text-text-secondary uppercase tracking-wider text-sm font-light">
             GESTIÓN DEL SISTEMA
           </p>
@@ -2235,8 +2266,9 @@ export default function AdminPage() {
         )}
       </div>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-dark-card border-t border-gold border-opacity-20 z-50">
-        <div className="flex justify-around items-center h-16 max-w-screen-xl mx-auto px-4">
+      {/* ── BOTTOM NAV MÓVIL (oculto en desktop) ── */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-dark-card border-t border-gold border-opacity-20 z-50 lg:hidden">
+        <div className="flex overflow-x-auto items-center h-16 max-w-screen-xl mx-auto px-2 gap-0.5 scrollbar-hide">
           {adminTabs.map((item) => {
             const isActive = tab === item.key
             return (
@@ -2244,18 +2276,19 @@ export default function AdminPage() {
                 key={item.key}
                 type="button"
                 onClick={() => setTab(item.key)}
-                className={`flex flex-col items-center justify-center flex-1 h-full transition-colors relative ${isActive
+                className={`flex flex-col items-center justify-center flex-shrink-0 px-3 h-full transition-colors relative ${isActive
                   ? 'text-gold'
                   : 'text-text-secondary hover:text-gold'
                   }`}
               >
-                <span className="text-2xl mb-1">{item.icon}</span>
-                <span className="text-xs font-medium">{item.label}</span>
+                <span className="text-xl mb-0.5">{item.icon}</span>
+                <span className="text-[10px] font-medium whitespace-nowrap">{item.label}</span>
               </button>
             )
           })}
         </div>
       </nav>
-    </div>
+      </div>
+      </div>
   )
 }

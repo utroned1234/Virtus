@@ -107,7 +107,7 @@ export default function KycPage() {
   }
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center pb-20">
+    <div className="min-h-screen flex items-center justify-center pb-20 lg:pb-0">
       <div className="animate-pulse text-[#34D399] text-sm">Cargando...</div>
     </div>
   )
@@ -115,13 +115,13 @@ export default function KycPage() {
   const status = kyc?.kyc_status || 'NOT_SUBMITTED'
 
   return (
-    <div className="min-h-screen pb-24">
-      <div className="max-w-md mx-auto p-4 space-y-4">
+    <div className="min-h-screen pb-24 lg:pb-8">
+      <div className="max-w-xl mx-auto p-4 md:p-6 lg:p-8 space-y-4">
 
         {/* Header */}
         <div className="text-center pt-2">
           <h1 className="text-xl font-bold text-[#34D399]">{t('kyc.title')}</h1>
-          <p className="text-white/50 text-[10px] uppercase tracking-wider mt-1">{t('kyc.subtitle')}</p>
+          <p className="text-white/50 text-[10px] md:text-xs uppercase tracking-wider mt-1">{t('kyc.subtitle')}</p>
         </div>
 
         {/* Estado actual */}

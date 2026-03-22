@@ -432,7 +432,7 @@ export default function FuturosPage() {
   }, [currentPrice])
 
   return (
-    <div className="min-h-screen bg-[#161A1E] text-[#EAECEF] font-sans pb-20 text-sm">
+    <div className="min-h-screen bg-[#161A1E] text-[#EAECEF] font-sans pb-20 lg:pb-4 text-sm">
 
       {/* Pair Header */}
       <div className="px-4 py-2 flex justify-between items-center bg-[#161A1E]">
@@ -868,7 +868,7 @@ export default function FuturosPage() {
       )}
 
       {/* Bottom Sheet Trigger */}
-      <div className="fixed bottom-16 left-0 right-0 py-2 border-t border-[#2B3139] bg-[#161A1E] text-center text-xs text-[#848E9C] flex items-center justify-center gap-2">
+      <div className="fixed bottom-16 lg:bottom-2 left-0 lg:left-64 right-0 py-2 border-t border-[#2B3139] bg-[#161A1E] text-center text-xs text-[#848E9C] flex items-center justify-center gap-2">
         {t('futuros.chartLabel').replace('{{pair}}', currentPair.replace('/', ''))}
         <ArrowUp size={12} />
       </div>

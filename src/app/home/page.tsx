@@ -437,21 +437,21 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen pb-20">
+    <div className="min-h-screen pb-20 lg:pb-0">
       <ScreenshotProtection />
-      <div className="max-w-screen-xl mx-auto p-4 space-y-4">
+      <div className="max-w-screen-xl mx-auto p-4 md:p-6 lg:p-8 space-y-4 lg:space-y-6">
         {/* Banner con Riel de Imágenes y Perfil Superpuesto */}
         <div className="relative mb-8">
-          {/* Botones Flotantes exclusivos del Home */}
-          <div className="absolute top-4 right-4 z-50">
+          {/* Botones Flotantes exclusivos del Home - ocultar en desktop (ya están en SideNav) */}
+          <div className="absolute top-4 right-4 z-50 lg:hidden">
             <LogoutButton />
           </div>
-          <div className="absolute top-4 left-4 z-50">
+          <div className="absolute top-4 left-4 z-50 lg:hidden">
             <LanguageButton />
           </div>
 
           {/* Riel de Imágenes (Banner Superior) */}
-          <div className="relative h-32 rounded-3xl overflow-hidden shadow-lg border border-white/5 group">
+          <div className="relative h-32 md:h-48 lg:h-56 rounded-3xl overflow-hidden shadow-lg border border-white/5 group">
             {bgImages.map((img, index) => (
               <div
                 key={index}
@@ -467,10 +467,10 @@ export default function HomePage() {
           </div>
 
           {/* Contenido del Perfil (Superpuesto al Banner) */}
-          <div className="relative z-10 flex flex-col items-center -mt-12 px-4">
+          <div className="relative z-10 flex flex-col items-center -mt-12 px-4 md:-mt-16 lg:-mt-20">
             <button
               onClick={() => setShowPhotoModal(true)}
-              className="w-24 h-24 rounded-full bg-[#060B10] p-1 flex items-center justify-center relative shadow-2xl"
+              className="w-24 h-24 md:w-32 md:h-32 lg:w-36 lg:h-36 rounded-full bg-[#060B10] p-1 flex items-center justify-center relative shadow-2xl"
             >
               <div className="w-full h-full rounded-full overflow-hidden bg-gradient-to-br from-[#34D399] to-[#0D1F1C] flex items-center justify-center text-white font-bold relative group">
                 <div className="absolute inset-0 border-2 border-[#34D399]/30 rounded-full z-20 group-hover:border-[#34D399] transition-colors"></div>
@@ -490,7 +490,7 @@ export default function HomePage() {
             </button>
 
             <div className="mt-3 text-center">
-              <h2 className="text-xl font-bold text-white tracking-wide font-[Orbitron] drop-shadow-md">{data.user.full_name}</h2>
+              <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-white tracking-wide font-[Orbitron] drop-shadow-md">{data.user.full_name}</h2>
               <div className="flex items-center justify-center gap-2 mt-1">
                 <p className="text-sm text-[#34D399]/80 font-medium">@{data.user.username}</p>
                 <div className="w-1 h-1 bg-white/20 rounded-full"></div>
@@ -612,14 +612,14 @@ export default function HomePage() {
         />
 
         {/* Bonos Patrocinio, Bono Compartido y Bonos Extra */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 md:grid-cols-3 gap-2 md:gap-4">
           {/* Bonos Patrocinio */}
           <button
             onClick={() => setShowBonusDetail(!showBonusDetail)}
             className="text-left glass-card !p-2.5 transition-all duration-300"
           >
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[8px] font-bold text-[#66BB6A] uppercase tracking-wider">{t('home.sponsorship')}</span>
+              <span className="text-[8px] md:text-xs font-bold text-[#66BB6A] uppercase tracking-wider">{t('home.sponsorship')}</span>
               <svg
                 className={`w-3 h-3 text-[#66BB6A]/50 transition-transform duration-300 ${showBonusDetail ? 'rotate-180' : ''}`}
                 fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"
@@ -655,7 +655,7 @@ export default function HomePage() {
             className="text-left glass-card !p-2.5 transition-all duration-300"
           >
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[8px] font-bold text-[#FFB74D] uppercase tracking-wider">{t('home.shared')}</span>
+              <span className="text-[8px] md:text-xs font-bold text-[#FFB74D] uppercase tracking-wider">{t('home.shared')}</span>
               <svg
                 className={`w-3 h-3 text-[#FFB74D]/50 transition-transform duration-300 ${showSharedDetail ? 'rotate-180' : ''}`}
                 fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"
@@ -697,7 +697,7 @@ export default function HomePage() {
             className="text-left glass-card !p-2.5 transition-all duration-300"
           >
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[8px] font-bold text-[#AB47BC] uppercase tracking-wider">{t('home.extrasLabel')}</span>
+              <span className="text-[8px] md:text-xs font-bold text-[#AB47BC] uppercase tracking-wider">{t('home.extrasLabel')}</span>
               <svg
                 className={`w-3 h-3 text-[#AB47BC]/50 transition-transform duration-300 ${showExtrasDetail ? 'rotate-180' : ''}`}
                 fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"
@@ -744,8 +744,8 @@ export default function HomePage() {
               <span className="text-sm">🌐</span>
             </div>
             <div>
-              <p className="text-[8px] text-white/40 uppercase tracking-wider">{t('home.myNetwork')}</p>
-              <p className="text-lg font-bold text-[#34D399] leading-tight">{data.network_count}</p>
+              <p className="text-[8px] md:text-xs text-white/40 uppercase tracking-wider">{t('home.myNetwork')}</p>
+              <p className="text-lg md:text-xl font-bold text-[#34D399] leading-tight">{data.network_count}</p>
             </div>
           </button>
           <div className="glass-card !p-2.5 flex items-center gap-2.5">
@@ -753,14 +753,14 @@ export default function HomePage() {
               <span className="text-sm">👥</span>
             </div>
             <div>
-              <p className="text-[8px] text-white/40 uppercase tracking-wider">{t('home.directs')}</p>
-              <p className="text-lg font-bold text-[#66BB6A] leading-tight">{data.direct_referrals}</p>
+              <p className="text-[8px] md:text-xs text-white/40 uppercase tracking-wider">{t('home.directs')}</p>
+              <p className="text-lg md:text-xl font-bold text-[#66BB6A] leading-tight">{data.direct_referrals}</p>
             </div>
           </div>
         </div>
 
         <div className="flex flex-col gap-2">
-          <p className="text-center text-[10px] text-white/50 font-mono break-all px-4">
+          <p className="text-center text-[10px] md:text-xs text-white/50 font-mono break-all px-4">
             {referralLink}
           </p>
 

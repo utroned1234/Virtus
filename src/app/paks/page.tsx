@@ -147,9 +147,9 @@ export default function PaksPage() {
   }
 
   return (
-    <div className="min-h-screen pb-20" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+    <div className="min-h-screen pb-20 lg:pb-0" style={{ fontFamily: 'Orbitron, sans-serif' }}>
       <ScreenshotProtection />
-      <div className="max-w-screen-xl mx-auto p-6 space-y-8">
+      <div className="max-w-screen-xl mx-auto p-4 md:p-6 lg:p-8 space-y-6 md:space-y-8">
 
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gold gold-glow uppercase tracking-wider mb-2">
@@ -160,7 +160,7 @@ export default function PaksPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 lg:gap-5">
           {packages.map((pkg) => {
             const purchasedData = purchasedPackages.find(p => p.id === pkg.id)
             const isPurchased = !!purchasedData
@@ -248,7 +248,7 @@ export default function PaksPage() {
                   </div>
 
                   {/* Monto de inversión */}
-                  <div className="space-y-1 text-[10px] pt-2" style={{ borderTop: `1px solid rgba(${tier.colorRgb}, 0.2)` }}>
+                  <div className="space-y-1 text-[10px] md:text-xs lg:text-sm pt-2" style={{ borderTop: `1px solid rgba(${tier.colorRgb}, 0.2)` }}>
                     <div className="flex justify-between">
                       <span className="text-text-secondary">{t('common.investment')}:</span>
                       <span className="font-bold text-white">${pkg.investment_bs.toLocaleString()} USD</span>
@@ -262,7 +262,7 @@ export default function PaksPage() {
                   </div>
 
                   {/* Beneficios */}
-                  <div className="space-y-1 text-[9px]">
+                  <div className="space-y-1 text-[9px] md:text-[10px] lg:text-xs">
                     <div className="flex items-center gap-1">
                       <span style={{ color: tier.color }}>✓</span>
                       <span className="text-text-secondary">{t('vip.signals')}</span>
@@ -284,7 +284,7 @@ export default function PaksPage() {
                   {/* Button - always at bottom */}
                   <button
                     disabled={isDisabled}
-                    className="mt-auto w-full py-2 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-all"
+                    className="mt-auto w-full py-2 lg:py-2.5 rounded-lg text-[10px] md:text-xs lg:text-sm font-semibold uppercase tracking-wider transition-all"
                     style={{
                       background: isDisabled
                         ? `rgba(${tier.colorRgb}, 0.1)`
@@ -309,7 +309,7 @@ export default function PaksPage() {
 
       </div>
 
-      <p className="mt-8 text-[10px] text-white/20 text-center uppercase tracking-wider px-4">
+      <p className="mt-8 text-[10px] md:text-xs text-white/20 text-center uppercase tracking-wider px-4">
         {t('common.copyright')}
       </p>
 

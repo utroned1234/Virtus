@@ -140,7 +140,7 @@ function ChartPageContent() {
     const { asks, bids } = generateOrderBook(currentPrice)
 
     return (
-        <div className="min-h-screen bg-[#161A1E] text-[#EAECEF] font-sans pb-20 flex flex-col">
+        <div className="min-h-screen bg-[#161A1E] text-[#EAECEF] font-sans pb-20 lg:pb-0 flex flex-col">
             {/* Header */}
             <div className="px-4 py-3 flex items-center justify-between bg-[#161A1E] border-b border-[#2B3139]">
                 <ArrowLeft size={20} className="text-[#EAECEF]" onClick={() => router.back()} />

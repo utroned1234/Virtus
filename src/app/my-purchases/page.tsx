@@ -90,9 +90,9 @@ export default function MyPurchasesPage() {
   }
 
   return (
-    <div className="min-h-screen pb-20">
+    <div className="min-h-screen pb-20 lg:pb-0">
       <ScreenshotProtection />
-      <div className="max-w-screen-xl mx-auto p-6 space-y-6">
+      <div className="max-w-3xl mx-auto p-4 md:p-6 lg:p-8 space-y-4 md:space-y-6">
         <div className="text-center">
           <h1 className="text-sm font-bold text-gradient-gold-blue">{t('myPurchases.title')}</h1>
           <p className="mt-2 text-text-secondary uppercase tracking-wider text-sm font-light">

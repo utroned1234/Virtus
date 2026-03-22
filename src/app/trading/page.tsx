@@ -947,10 +947,10 @@ export default function FuturosPage() {
 
   // --- Render ---
   return (
-    <div className="min-h-screen bg-[#060B10] text-[#E0E6ED] pb-24 font-sans selection:bg-[#34D399]/30">
+    <div className="min-h-screen bg-[#060B10] text-[#E0E6ED] pb-24 lg:pb-8 font-sans selection:bg-[#34D399]/30">
 
       {/* Header - Glassmorphism */}
-      <div className="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-4 h-14 backdrop-blur-md bg-[#0A1119]/70 border-b border-white/5 shadow-lg shadow-black/20">
+      <div className="fixed top-0 left-0 lg:left-64 right-0 z-50 flex items-center justify-between px-4 h-14 backdrop-blur-md bg-[#0A1119]/70 border-b border-white/5 shadow-lg shadow-black/20">
         <div className="flex items-center gap-3" onClick={() => setShowSidebar(true)}>
           <div className="p-1.5 rounded-lg bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 transition-colors">
             <Menu size={20} />
@@ -1000,7 +1000,7 @@ export default function FuturosPage() {
       )}
 
       {/* Main Content */}
-      <div className="pt-20 px-4 max-w-lg mx-auto w-full">
+      <div className="pt-20 px-4 md:px-8 max-w-lg md:max-w-2xl lg:max-w-4xl mx-auto w-full">
 
         {/* Info Bar */}
         <div className="flex justify-between items-end mb-4 px-1">
@@ -1033,7 +1033,7 @@ export default function FuturosPage() {
         </div>
 
         {/* Chart Container */}
-        <div className="h-[320px] rounded-2xl bg-[#0A1119] border border-white/5 relative mb-6 overflow-hidden shadow-2xl">
+        <div className="h-[320px] md:h-[420px] lg:h-[500px] rounded-2xl bg-[#0A1119] border border-white/5 relative mb-6 overflow-hidden shadow-2xl">
           {/* Chart Glows */}
           <div className="absolute top-0 right-0 w-32 h-32 bg-[#34D399]/5 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute bottom-0 left-0 w-32 h-32 bg-[#00A3FF]/5 rounded-full blur-3xl pointer-events-none" />
@@ -1238,7 +1238,7 @@ export default function FuturosPage() {
       </div>
 
       {/* Modern Floating Action Bar */}
-      <div className="fixed bottom-[88px] left-1/2 transform -translate-x-1/2 w-full max-w-lg px-4 z-40">
+      <div className="fixed bottom-[88px] lg:bottom-6 left-1/2 lg:left-[calc(50%+128px)] transform -translate-x-1/2 w-full max-w-lg lg:max-w-2xl px-4 z-40">
         <div className="bg-[#131B26]/90 backdrop-blur-xl border border-white/10 p-2 rounded-2xl shadow-2xl flex gap-3">
           <button
             onClick={() => { setPendingType('CALL'); setShowConfirm(true) }}

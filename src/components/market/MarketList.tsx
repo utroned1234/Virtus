@@ -153,7 +153,7 @@ export default function MarketList({ category }: { category: MarketCategory }) {
     }
 
     return (
-        <div className="pb-24">
+        <div className="pb-24 lg:pb-8">
             {/* Header Columns */}
             <div className="grid grid-cols-3 text-[10px] text-white/40 px-3 py-2 uppercase tracking-wider sticky top-[56px] bg-[#060B10] z-20 border-b border-white/5">
                 <div className="text-left">{t('mercado.asset')}</div>

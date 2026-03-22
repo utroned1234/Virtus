@@ -64,6 +64,15 @@ body {
 }
 
 @layer utilities {
+  /* Ocultar scrollbar manteniendo funcionalidad */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
   .glass-card {
     background: linear-gradient(145deg, rgba(13, 31, 28, 0.92), rgba(18, 37, 36, 0.88));
     backdrop-filter: blur(16px);
