@@ -45,8 +45,8 @@ export function startAutoPublishSignalCron() {
     return
   }
 
-  // Every day at 4:00 PM Bolivia time (UTC-4, no DST)
-  cron.schedule('0 16 * * *', async () => {
+  // Every day at 20:00 UTC = 4:00 PM Bolivia (UTC-4, no DST)
+  cron.schedule('0 20 * * *', async () => {
     try {
       const response = await fetch(`${getBaseUrl()}/api/cron/auto-publish-signal`, {
         method: 'POST',
@@ -59,7 +59,7 @@ export function startAutoPublishSignalCron() {
     } catch (error) {
       console.error('[CRON-SIGNAL] Error:', error)
     }
-  }, { timezone: 'America/La_Paz' })
+  })
 
   isSignalScheduled = true
   console.log('[CRON-SIGNAL] Señal automática programada: 4:00 PM hora Bolivia')
