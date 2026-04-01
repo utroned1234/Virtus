@@ -1,32 +1,22 @@
 import { NextResponse } from 'next/server'
 
-// Cache a nivel de módulo — se reutiliza entre requests en el mismo proceso
 let cache: { data: any[]; ts: number } | null = null
-const CACHE_TTL = 55_000 // 55 segundos
+const CACHE_TTL = 55_000
 
-const COINGECKO_IDS = [
-  'bitcoin', 'ethereum', 'binancecoin', 'solana', 'xrp',
-  'cardano', 'avalanche-2', 'polkadot', 'chainlink', 'dogecoin',
-  'tron', 'matic-network', 'litecoin', 'shiba-inu', 'bitcoin-cash',
-  'uniswap', 'stellar', 'monero', 'ethereum-classic', 'cosmos',
+const SYMBOLS = [
+  'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT',
+  'ADAUSDT', 'AVAXUSDT', 'DOTUSDT', 'LINKUSDT', 'DOGEUSDT',
+  'TRXUSDT', 'MATICUSDT', 'LTCUSDT', 'SHIBUSDT', 'BCHUSDT',
+  'UNIUSDT', 'XLMUSDT', 'XMRUSDT', 'ETCUSDT', 'ATOMUSDT',
 ]
 
-const SYMBOL_MAP: Record<string, string> = {
-  'bitcoin': 'BTCUSDT', 'ethereum': 'ETHUSDT', 'binancecoin': 'BNBUSDT',
-  'solana': 'SOLUSDT', 'xrp': 'XRPUSDT', 'cardano': 'ADAUSDT',
-  'avalanche-2': 'AVAXUSDT', 'polkadot': 'DOTUSDT', 'chainlink': 'LINKUSDT',
-  'dogecoin': 'DOGEUSDT', 'tron': 'TRXUSDT', 'matic-network': 'MATICUSDT',
-  'litecoin': 'LTCUSDT', 'shiba-inu': 'SHIBUSDT', 'bitcoin-cash': 'BCHUSDT',
-  'uniswap': 'UNIUSDT', 'stellar': 'XLMUSDT', 'monero': 'XMRUSDT',
-  'ethereum-classic': 'ETCUSDT', 'cosmos': 'ATOMUSDT',
-}
-
-async function fetchFromCoinGecko(): Promise<any[]> {
+async function fetchFromBinance(): Promise<any[]> {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 10000)
 
   try {
-    const url = `https://api.coingecko.com/api/v3/simple/price?ids=${COINGECKO_IDS.join(',')}&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true`
+    const symbolsParam = encodeURIComponent(JSON.stringify(SYMBOLS))
+    const url = `https://api.binance.com/api/v3/ticker/24hr?symbols=${symbolsParam}`
 
     const res = await fetch(url, {
       signal: controller.signal,
@@ -36,15 +26,15 @@ async function fetchFromCoinGecko(): Promise<any[]> {
 
     clearTimeout(timeout)
 
-    if (!res.ok) throw new Error(`CoinGecko ${res.status}`)
+    if (!res.ok) throw new Error(`Binance ${res.status}`)
 
-    const raw = await res.json()
+    const raw: any[] = await res.json()
 
-    return Object.entries(raw).map(([id, p]: [string, any]) => ({
-      symbol: SYMBOL_MAP[id] || id.toUpperCase() + 'USDT',
-      lastPrice: String(p.usd ?? 0),
-      priceChangePercent: String(Number(p.usd_24h_change ?? 0).toFixed(2)),
-      quoteVolume: String(p.usd_24h_vol ?? 0),
+    return raw.map((t: any) => ({
+      symbol: t.symbol,
+      lastPrice: t.lastPrice,
+      priceChangePercent: parseFloat(t.priceChangePercent).toFixed(2),
+      quoteVolume: t.quoteVolume,
     }))
   } catch (err) {
     clearTimeout(timeout)
@@ -55,26 +45,18 @@ async function fetchFromCoinGecko(): Promise<any[]> {
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
-  // Devuelve caché si tiene menos de 55 segundos
   if (cache && Date.now() - cache.ts < CACHE_TTL) {
-    return NextResponse.json(cache.data, {
-      headers: { 'X-Cache': 'HIT' },
-    })
+    return NextResponse.json(cache.data, { headers: { 'X-Cache': 'HIT' } })
   }
 
   try {
-    const data = await fetchFromCoinGecko()
+    const data = await fetchFromBinance()
     cache = { data, ts: Date.now() }
-    return NextResponse.json(data, {
-      headers: { 'X-Cache': 'MISS' },
-    })
+    return NextResponse.json(data, { headers: { 'X-Cache': 'MISS' } })
   } catch (err: any) {
-    // Si falla pero tenemos caché viejo, lo devolvemos igual
     if (cache) {
-      console.warn('CoinGecko failed, serving stale cache:', err?.message)
-      return NextResponse.json(cache.data, {
-        headers: { 'X-Cache': 'STALE' },
-      })
+      console.warn('Binance failed, serving stale cache:', err?.message)
+      return NextResponse.json(cache.data, { headers: { 'X-Cache': 'STALE' } })
     }
     console.error('Market API error (no cache):', err?.message)
     return NextResponse.json({ error: 'Market data unavailable' }, { status: 503 })
