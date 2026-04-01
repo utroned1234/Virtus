@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: appdefer
+    runtime: node
+    buildCommand: npm install --legacy-peer-deps && npx prisma generate && npx prisma db push && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
